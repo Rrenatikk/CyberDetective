@@ -3,7 +3,10 @@ package gamedev.model.view;
 import gamedev.controller.GameController;
 import gamedev.model.GameObject;
 import gamedev.model.Level;
+import gamedev.model.SoundPlayer;
+import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.TranslateTransition;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.effect.DropShadow;
@@ -13,6 +16,13 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.animation.ParallelTransition;
+import javafx.scene.text.Text;
+import javafx.scene.text.Font;
+import javafx.scene.paint.Color;
+import javafx.scene.text.FontWeight;
+
+
 
 public class GameView {
     private GameController controller;
@@ -23,9 +33,13 @@ public class GameView {
     private ImageView confirmNo;
     private boolean isConfirmDialogVisible = false;
 
+    private ParallelTransition confirmPulseAnimation;
+
+    private Text scoreText;
+
     // UI elements
     private ImageView logout;
-    private ImageView reset;
+    private ImageView music;
     private ImageView volume;
 
     public GameView(GameController controller) {
@@ -48,8 +62,8 @@ public class GameView {
         Image volumeImage = new Image(getClass().getResource("/ui/volume_on.png").toExternalForm());
         volume = new ImageView(volumeImage);
 
-        Image resetImage = new Image(getClass().getResource("/ui/reset.png").toExternalForm());
-        reset = new ImageView(resetImage);
+        Image musicImage = new Image(getClass().getResource("/ui/music_on.png").toExternalForm());
+        music = new ImageView(musicImage);
 
         Image scoreImage = new Image(getClass().getResource("/ui/score.png").toExternalForm());
         ImageView score = new ImageView(scoreImage);
@@ -117,47 +131,84 @@ public class GameView {
         logout.setLayoutY(0);
         root.getChildren().add(logout);
 
-        reset.setLayoutX(140);
-        reset.setLayoutY(0);
-        root.getChildren().add(reset);
+        music.setLayoutX(140);
+        music.setLayoutY(0);
+        root.getChildren().add(music);
 
         volume.setLayoutX(280);
         volume.setLayoutY(0);
         root.getChildren().add(volume);
 
+        // Инициализация текста счета
+        scoreText = new Text("0/" + controller.getTotalThreats());
+        scoreText.setFont(Font.font("Poppins", FontWeight.BLACK, 64));
+        scoreText.setFill(Color.WHITE);
+
+        DropShadow dropShadow = new DropShadow();
+        dropShadow.setColor(Color.color(0, 0, 0, 0.25));
+        dropShadow.setOffsetY(4.0);
+        dropShadow.setOffsetX(0.0);
+        dropShadow.setRadius(4.0);
+        scoreText.setEffect(dropShadow);
+
+        // Размещаем текст поверх картинки score.png (подберите координаты)
+        scoreText.setLayoutX(1155); // Примерная координата X
+        scoreText.setLayoutY(90);  // Примерная координата Y
+        root.getChildren().add(scoreText);
+
         root.getChildren().addAll(confirmDialog, confirmYes, confirmNo);
 
         setupButtonAnimation(logout);
-        setupButtonAnimation(reset);
+        setupButtonAnimation(music);
         setupButtonAnimation(volume);
         setupButtonAnimation(confirmYes);
         setupButtonAnimation(confirmNo);
 
         //########################################/ LOGOUT BUTTON /########################################//
         logout.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
             showConfirmDialog();
         });
 
         //########################################/ CONFIRM DIALOG BUTTONS /########################################//
         confirmYes.setOnMouseClicked(e -> {
             // If "yes" selected
+            SoundPlayer.play("button_clicked.mp3");
             controller.exitGame(stage);
         });
 
         confirmNo.setOnMouseClicked(e -> {
             // If "no" selected
+            SoundPlayer.play("button_clicked.mp3");
             hideConfirmDialog();
         });
 
-        //########################################/ MUTE BUTTON /########################################//
-        volume.setOnMouseClicked(e -> {
+        //########################################/ MUSIC OFF BUTTON /########################################//
+        music.setOnMouseClicked(e -> {
             controller.toggleMute();
+            SoundPlayer.play("button_clicked.mp3");
             if (controller.isMuted()) {
+                music.setImage(new Image(getClass().getResource("/ui/music_off.png").toExternalForm()));
+            } else {
+                music.setImage(new Image(getClass().getResource("/ui/music_on.png").toExternalForm()));
+            }
+        });
+
+        //########################################/ SOUNDS OFF BUTTON /########################################//
+        volume.setOnMouseClicked(e -> {
+            controller.toggleSoundEffects();
+            SoundPlayer.play("button_clicked.mp3"); // играет только если звуки ещё включены
+
+            boolean muted = controller.areSoundEffectsMuted();
+            SoundPlayer.setMuted(muted); // обновляем состояние в SoundPlayer
+
+            if (muted) {
                 volume.setImage(new Image(getClass().getResource("/ui/mute.png").toExternalForm()));
             } else {
                 volume.setImage(new Image(getClass().getResource("/ui/volume_on.png").toExternalForm()));
             }
         });
+
     }
 
     public void showMessage(String message) {
@@ -167,29 +218,66 @@ public class GameView {
     private void showConfirmDialog() {
         isConfirmDialogVisible = true;
 
-        // Dialog menu center position
+        // Центрирование диалога
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-        double dialogWidth = 650; // Ширина вашего диалога
-        double dialogHeight = 300; // Высота вашего диалога
+        double dialogWidth = 650;
+        double dialogHeight = 300;
 
         double x = (screenBounds.getWidth() - dialogWidth) / 2;
         double y = (screenBounds.getHeight() - dialogHeight) / 2;
 
         confirmDialog.setLayoutX(x);
         confirmDialog.setLayoutY(y);
-        confirmDialog.setVisible(true);
-
-        // In dialog menu buttons positions
-        confirmYes.setLayoutX(x);
+        confirmYes.setLayoutX(x + 10);
         confirmYes.setLayoutY(y + 180);
-        confirmYes.setVisible(true);
-
-        confirmNo.setLayoutX(x + 325);
+        confirmNo.setLayoutX(x + 335);
         confirmNo.setLayoutY(y + 180);
+
+        confirmDialog.setVisible(true);
+        confirmYes.setVisible(true);
         confirmNo.setVisible(true);
 
-        // Block game interaction
+        // Блокируем остальной интерфейс
         setGameInteraction(false);
+
+        // ----------- ЭФФЕКТ ПОЯВЛЕНИЯ ----------- //
+        confirmDialog.setOpacity(0);
+        confirmDialog.setScaleX(0.8);
+        confirmDialog.setScaleY(0.8);
+        confirmDialog.setTranslateY(40);
+
+        confirmYes.setOpacity(0);
+        confirmNo.setOpacity(0);
+
+        // Анимация окна
+        javafx.animation.FadeTransition fadeIn = new javafx.animation.FadeTransition(Duration.millis(300), confirmDialog);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.ScaleTransition scaleIn = new javafx.animation.ScaleTransition(Duration.millis(300), confirmDialog);
+        scaleIn.setFromX(0.8);
+        scaleIn.setFromY(0.8);
+        scaleIn.setToX(1.0);
+        scaleIn.setToY(1.0);
+
+        javafx.animation.TranslateTransition moveUp = new javafx.animation.TranslateTransition(Duration.millis(300), confirmDialog);
+        moveUp.setFromY(40);
+        moveUp.setToY(0);
+
+        // Кнопки "Да" и "Нет" появляются чуть позже
+        javafx.animation.FadeTransition fadeYes = new javafx.animation.FadeTransition(Duration.millis(250), confirmYes);
+        fadeYes.setFromValue(0);
+        fadeYes.setToValue(1);
+
+        javafx.animation.FadeTransition fadeNo = new javafx.animation.FadeTransition(Duration.millis(250), confirmNo);
+        fadeNo.setFromValue(0);
+        fadeNo.setToValue(1);
+
+        // Группируем всё
+        javafx.animation.ParallelTransition dialogAppear = new javafx.animation.ParallelTransition(fadeIn, scaleIn, moveUp);
+        javafx.animation.SequentialTransition total = new javafx.animation.SequentialTransition(dialogAppear, new javafx.animation.ParallelTransition(fadeYes, fadeNo));
+
+        total.play();
     }
 
     private void hideConfirmDialog() {
@@ -211,7 +299,7 @@ public class GameView {
 
         // Block other UI elements
         logout.setDisable(!enabled);
-        reset.setDisable(!enabled);
+        music.setDisable(!enabled);
         volume.setDisable(!enabled);
     }
 
@@ -252,5 +340,41 @@ public class GameView {
             button.setTranslateY(0);
             button.setEffect(null);
         });
+    }
+
+    public void updateScore(int found, long total) {
+        scoreText.setText(found + "/" + total);
+    }
+
+    public void showTipImage(String imageName, double x, double y) {
+        try {
+            // 1. Загружаем изображение подсказки
+            Image tipImage = new Image(getClass().getResource("/tips/" + imageName).toExternalForm());
+            ImageView tipView = new ImageView(tipImage);
+
+            // 2. Устанавливаем положение: над объектом
+            // Вы можете настроить смещение (например, -50), чтобы поднять подсказку над объектом.
+            tipView.setLayoutX(x);
+            tipView.setLayoutY(y - tipImage.getHeight() - 50); // Размещаем над объектом
+
+            // 3. Добавляем в корневой Pane
+            root.getChildren().add(tipView);
+
+            // 4. (ОПЦИОНАЛЬНО) Добавляем анимацию исчезновения
+            // Создаем анимацию исчезновения (Fade Out)
+            FadeTransition ft = new FadeTransition(Duration.millis(1000), tipView);
+            ft.setFromValue(1.0);
+            ft.setToValue(0.0);
+
+            // По завершении анимации удаляем подсказку с экрана
+            ft.setOnFinished(e -> root.getChildren().remove(tipView));
+
+            // Анимация начинается через 500 мс (задержка перед исчезновением)
+            ft.setDelay(Duration.millis(500));
+            ft.play();
+
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки изображения подсказки: /tips/" + imageName + " " + e.getMessage());
+        }
     }
 }

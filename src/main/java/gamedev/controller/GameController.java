@@ -1,9 +1,6 @@
 package gamedev.controller;
 
-import gamedev.model.Game;
-import gamedev.model.Level;
-import gamedev.model.GameObject;
-import gamedev.model.ThreatType;
+import gamedev.model.*;
 import gamedev.model.view.GameView;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
@@ -13,12 +10,16 @@ import javafx.stage.Stage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 
+import java.util.Random;
 import java.util.List;
 
 public class GameController {
     private Game game;
     private GameView view;
     private MediaPlayer mediaPlayer; // Перенесено из GameView
+    private boolean soundEffectsMuted = false;
+
+    private final Random random = new Random();
 
     public void startGame(Stage stage) {
         //########################################/ AUDIO /########################################//
@@ -237,17 +238,67 @@ public class GameController {
         view.start(stage);
     }
 
+    // GameController.java
     public void onObjectClicked(GameObject obj) {
-        if (obj.isThreat()) {
-            game.addScore(100);
-            view.showMessage("Threat founded: " + obj.getName());
+        String tipFileName;
+
+        // Проверяем, является ли объект угрозой И не был ли он найден ранее
+        if (obj.isThreat() && !obj.isFound()) {
+            if (!soundEffectsMuted) {
+                SoundPlayer.play("button_clicked.mp3");
+            }
+
+            // 1. Логика для найденной УГРОЗЫ (tip1.png - tip5.png)
+            tipFileName = getRandomTipFileName(1, 5);
+
+            // 1. Помечаем объект как найденный
+            obj.setFound(true);
+
+            // 2. Увеличиваем счетчик в модели
+            game.incrementThreatsFound();
+
+            // 3. Обновляем текст на экране через View
+            view.updateScore(game.getThreatsFound(), game.getTotalThreats());
+
+            // 4. (Рекомендуется) Даем визуальную обратную связь
+            obj.getImage().setDisable(true);
+            obj.getImage().setOpacity(0.6);
+
+            view.showMessage("Угроза найдена: " + obj.getName());
+
+        } else if (obj.isThreat() && obj.isFound()) {
+            // Если кликнули по уже найденной угрозе
+            view.showMessage("Эта угроза уже была найдена!");
+            return; // Выходим, чтобы не показывать подсказку
+
         } else {
-            view.showMessage("This object is safe!");
+            // 2. Логика для БЕЗОПАСНОГО объекта (tip6.png - tip10.png)
+            if (!soundEffectsMuted) {
+                SoundPlayer.play("button_clicked.mp3"); // Звук ошибки
+            }
+            tipFileName = getRandomTipFileName(6, 10);
+            view.showMessage("Этот объект безопасен!");
+        }
+
+        // ----------- Отображение подсказки -----------
+        // Если объект не был найден ранее (для угроз) ИЛИ является безопасным
+        if (tipFileName != null) {
+            // Координаты объекта (взятые из ImageView)
+            double objX = obj.getImage().getLayoutX();
+            double objY = obj.getImage().getLayoutY();
+
+            // Отправляем имя файла и координаты для отображения в View
+            view.showTipImage(tipFileName, objX - 85, objY + 30);
         }
     }
 
     public Level getCurrentLevel() {
         return game.getCurrentLevel();
+    }
+
+    public long getTotalThreats() {
+        // Контроллер просто просит модель дать нужные данные
+        return game.getTotalThreats();
     }
 
     public void toggleMute() {
@@ -260,6 +311,15 @@ public class GameController {
         return mediaPlayer != null && mediaPlayer.isMute();
     }
 
+    public void toggleSoundEffects() {
+        soundEffectsMuted = !soundEffectsMuted;
+    }
+
+    public boolean areSoundEffectsMuted() {
+        return soundEffectsMuted;
+    }
+
+
     public void exitGame(Stage stage) {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
@@ -269,5 +329,13 @@ public class GameController {
 
         // Here you can return to start menu or smth like that
         // Example: controller.showMainMenu();
+    }
+
+    private String getRandomTipFileName(int start, int end) {
+        // nextInt(bound) возвращает число от 0 до bound-1.
+        // nextInt(end - start + 1) возвращает число от 0 до (end - start).
+        // Добавляем 'start', чтобы получить диапазон от 'start' до 'end'.
+        int tipNumber = random.nextInt(end - start + 1) + start;
+        return "tip" + tipNumber + ".png";
     }
 }

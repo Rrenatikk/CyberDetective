@@ -3,31 +3,35 @@ package gamedev.model;
 import java.util.List;
 
 public class Game {
-    private int score;
     private int currentLevel;
     private List<Level> levels;
+    private int threatsFound = 0;
+    private long totalThreats = 0;
 
     public Game(List<Level> levels) {
-        this.score = 0;
-        this.currentLevel = 0;
+
         this.levels = levels;
+        if (!levels.isEmpty()) {
+            this.totalThreats = getCurrentLevel().getObjects().stream()
+                    .filter(GameObject::isThreat)
+                    .count();
+        }
     }
 
     public Level getCurrentLevel() {
         return levels.get(currentLevel);
     }
 
-    public void nextLevel() {
-        if (currentLevel < levels.size() - 1) {
-            currentLevel++;
-        }
+
+    public void incrementThreatsFound() {
+        this.threatsFound++;
     }
 
-    public void addScore(int points) {
-        score += points;
+    public int getThreatsFound() {
+        return threatsFound;
     }
 
-    public int getScore() {
-        return score;
+    public long getTotalThreats() {
+        return totalThreats;
     }
 }

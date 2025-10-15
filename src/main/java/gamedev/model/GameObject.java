@@ -8,6 +8,7 @@ public class GameObject {
     private ThreatType threatType;
     private ImageView image;
     private double x, y;
+    private boolean found = false;
 
     public GameObject(String name, boolean isThreat, ThreatType threatType, ImageView image, double x, double y) {
         this.name = name;
@@ -25,4 +26,12 @@ public class GameObject {
     public ThreatType getThreatType() { return threatType; }
     public ImageView getImage() { return image; }
     public String getName() { return name; }
+
+    public boolean isFound() {
+        return found;
+    }
+
+    public void setFound(boolean found) {
+        this.found = found;
+    }
 }
