@@ -264,11 +264,11 @@ public class GameController {
             obj.getImage().setDisable(true);
             obj.getImage().setOpacity(0.6);
 
-            view.showMessage("Угроза найдена: " + obj.getName());
+            view.showMessage("Загрозу знайдено: " + obj.getName());
 
         } else if (obj.isThreat() && obj.isFound()) {
             // Если кликнули по уже найденной угрозе
-            view.showMessage("Эта угроза уже была найдена!");
+            view.showMessage("Цю загрозу вже було знайдено!");
             return; // Выходим, чтобы не показывать подсказку
 
         } else {
@@ -277,7 +277,7 @@ public class GameController {
                 SoundPlayer.play("button_clicked.mp3"); // Звук ошибки
             }
             tipFileName = getRandomTipFileName(6, 10);
-            view.showMessage("Этот объект безопасен!");
+            view.showMessage("Цей об'єкт є безпечним!");
         }
 
         // ----------- Отображение подсказки -----------
