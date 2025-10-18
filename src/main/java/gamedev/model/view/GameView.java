@@ -1,5 +1,6 @@
 package gamedev.model.view;
 
+import gamedev.model.Game;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
 import gamedev.controller.GameController;
@@ -12,6 +13,8 @@ import javafx.animation.TranslateTransition;
 import javafx.animation.ParallelTransition;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -26,6 +29,10 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class GameView {
     private GameController controller;
     private Pane root;
@@ -35,6 +42,9 @@ public class GameView {
     private ImageView confirmNo;
     private boolean isConfirmDialogVisible = false;
     private ParallelTransition confirmPulseAnimation;
+    private ImageView endDialog;
+    private ImageView endOk;
+    private boolean isEndDialogVisible = false;
 
     private Text scoreText;
 
@@ -49,9 +59,12 @@ public class GameView {
 
     public GameView(GameController controller) {
         this.controller = controller;
+        this.stage = stage;
+        this.root = new Pane();
     }
 
     public void start(Stage stage) {
+        root = new Pane();
         //########################################/ UI /########################################//
         Image ui_sideImage = new Image(getClass().getResource("/ui/ui_side.png").toExternalForm());
         ImageView ui_side_left = new ImageView(ui_sideImage);
@@ -84,6 +97,7 @@ public class GameView {
         Image confirmNoImage = new Image(getClass().getResource("/ui/confirm_no.png").toExternalForm());
         confirmNo = new ImageView(confirmNoImage);
         confirmNo.setVisible(false);
+
 
         //########################################/ Pane /########################################//
         root = new Pane();
@@ -383,6 +397,7 @@ public class GameView {
 
         if (found == total) {
             showEndMessage("Ти молодець!\nРада по кібербезпеці: Не відкривай підозрілі посилання та використовуй складні паролі.");
+            showEndDialog();
         }
     }
 
@@ -430,6 +445,45 @@ public class GameView {
         ft.setToValue(0.0);
         ft.setOnFinished(e -> root.getChildren().remove(endText));
         ft.play();
+    }
+
+    private Stage stage;
+
+    public GameView(GameController controller, Stage stage) {
+        this.controller = controller;
+        this.stage = stage;
+    }
+    public Pane getRootPane() {
+        return root;
+    }
+
+    public void showEndDialog() {
+        if (isEndDialogVisible) return;
+        isEndDialogVisible = true;
+
+        javafx.application.Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Кінець гри");
+            alert.setHeaderText("Вітаємо! Ви знайшли всі предмети 🎉");
+            alert.setContentText("Бажаєте почати заново чи вийти з гри?");
+
+            ButtonType playAgain = new ButtonType("Почати заново");
+            ButtonType exit = new ButtonType("Вийти");
+            alert.getButtonTypes().setAll(playAgain, exit);
+
+            alert.showAndWait().ifPresent(response -> {
+                if (response == playAgain) {
+                    controller.resetGame();
+                    isEndDialogVisible = false; // дозволяємо наступний діалог у майбутньому
+                } else if (response == exit) {
+                    javafx.application.Platform.exit(); // повністю закриваємо додаток
+                }
+            });
+        });
+    }
+
+    public Scene getScene() {
+        return root.getScene();
     }
 
 }

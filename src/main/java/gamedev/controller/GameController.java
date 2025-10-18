@@ -9,15 +9,18 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 
-import java.util.Random;
-import java.util.List;
+import java.util.*;
 
 public class GameController {
     private Game game;
     private GameView view;
     private MediaPlayer mediaPlayer; // Перенесено из GameView
     private boolean soundEffectsMuted = false;
+    private Stage stage;
 
     private final Random random = new Random();
 
@@ -32,6 +35,7 @@ public class GameController {
         } catch (Exception e) {
             System.out.println("Не удалось загрузить музыку: " + e.getMessage());
         }
+
 
         Image backgroundImage = new Image(getClass().getResource("/background.png").toExternalForm());
         ImageView background = new ImageView(backgroundImage);
@@ -260,6 +264,13 @@ public class GameController {
             // 3. Обновляем текст на экране через View
             view.updateScore(game.getThreatsFound(), game.getTotalThreats());
 
+            // Проверка конца игры
+            if (game.getThreatsFound() >= game.getTotalThreats()) {
+                view.showEndDialog();
+                return;
+            }
+
+
             // 4. (Рекомендуется) Даем визуальную обратную связь
             obj.getImage().setDisable(true);
             obj.getImage().setOpacity(0.6);
@@ -337,5 +348,17 @@ public class GameController {
         // Добавляем 'start', чтобы получить диапазон от 'start' до 'end'.
         int tipNumber = random.nextInt(end - start + 1) + start;
         return "tip" + tipNumber + ".png";
+    }
+
+
+    public void resetGame() {
+        game.reset();
+        view.updateScore(game.getThreatsFound(), game.getTotalThreats());
+    }
+    public GameController(Game game) {
+        this.game = game;
+    }
+    public void setView(GameView view) {
+        this.view = view;
     }
 }
