@@ -410,11 +410,11 @@ public class GameView {
             tipView.setLayoutY(y - tipImage.getHeight() - 50);
             root.getChildren().add(tipView);
 
-            FadeTransition ft = new FadeTransition(Duration.millis(1000), tipView);
+            FadeTransition ft = new FadeTransition(Duration.millis(100), tipView);
             ft.setFromValue(1.0);
             ft.setToValue(0.0);
             ft.setOnFinished(e -> root.getChildren().remove(tipView));
-            ft.setDelay(Duration.millis(500));
+            ft.setDelay(Duration.millis(100));
             ft.play();
         } catch (Exception e) {
             System.err.println("Ошибка загрузки изображения подсказки: /tips/" + imageName + " " + e.getMessage());
@@ -440,7 +440,7 @@ public class GameView {
 
         root.getChildren().add(endText);
 
-        FadeTransition ft = new FadeTransition(Duration.seconds(100), endText);
+        FadeTransition ft = new FadeTransition(Duration.seconds(8), endText);
         ft.setFromValue(1.0);
         ft.setToValue(0.0);
         ft.setOnFinished(e -> root.getChildren().remove(endText));
