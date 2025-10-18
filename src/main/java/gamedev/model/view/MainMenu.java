@@ -1,6 +1,7 @@
 package gamedev.model.view;
 
 import gamedev.controller.GameController;
+import gamedev.model.Game;
 import gamedev.model.SoundPlayer;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
@@ -19,6 +20,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import java.util.Collections;
 
 public class MainMenu {
     private Stage primaryStage;
