@@ -17,6 +17,16 @@ public class Game {
                     .count();
         }
     }
+    public void reset() {
+        threatsFound = 0; // сброс счетчика найденных угроз
+        for (Level level : levels) {
+            for (GameObject obj : level.getObjects()) {
+                obj.setFound(false);
+                obj.getImage().setDisable(false);
+                obj.getImage().setOpacity(1.0);
+            }
+        }
+    }
 
     public Level getCurrentLevel() {
         return levels.get(currentLevel);
@@ -34,4 +44,5 @@ public class Game {
     public long getTotalThreats() {
         return totalThreats;
     }
+
 }
