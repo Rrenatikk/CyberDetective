@@ -182,7 +182,7 @@ public class GameController {
 
         // glow effect
         DropShadow borderGlow = new DropShadow();
-        borderGlow.setColor(Color.LIME);
+        borderGlow.setColor(Color.YELLOW);
         borderGlow.setOffsetX(0);
         borderGlow.setOffsetY(0);
         borderGlow.setWidth(50);
