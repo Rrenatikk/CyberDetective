@@ -1,335 +1,326 @@
 package gamedev.model.view;
 
 import gamedev.controller.GameController;
-import gamedev.model.Game;
 import gamedev.model.SoundPlayer;
-import javafx.animation.FadeTransition;
-import javafx.animation.ParallelTransition;
-import javafx.animation.ScaleTransition;
-import javafx.animation.TranslateTransition;
-import javafx.geometry.Pos;
+import javafx.animation.*;
+import javafx.application.Platform;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
-import java.util.Collections;
-
 public class MainMenu {
-    private Stage primaryStage;
-    private double screenWidth;
-    private double screenHeight;
+    private final Stage primaryStage;
+    private final double screenWidth;
+    private final double screenHeight;
+    private final GameController controller;
+    private MediaPlayer mediaPlayer;
 
-    public MainMenu(Stage primaryStage) {
+    // Все элементы создаются сразу при создании MainMenu
+    private final ImageView rulesBackground;
+    private final ImageView rulesList;
+    private final ImageView backButton;
+    private final ImageView playButton;
+    private final ImageView rulesButton;
+    private final ImageView exitButton;
+    private final ImageView background;
+    private final Text copyrightText;
+
+    // Элемент для затемнения - используем Rectangle и делаем его НЕкликабельным
+    private final Rectangle darkOverlay;
+
+    public MainMenu(Stage primaryStage, GameController controller) {
         this.primaryStage = primaryStage;
+        this.controller = controller;
 
-        // Отримуємо розміри екрану
         Screen screen = Screen.getPrimary();
         screenWidth = screen.getBounds().getWidth();
         screenHeight = screen.getBounds().getHeight();
-    }
 
-    public void show() {
-        // Завантажуємо фон меню на весь екран
-        Image backgroundImage = new Image(getClass().getResourceAsStream("/ui/menu_back1.png"));
-        ImageView background = new ImageView(backgroundImage);
+        // Основной фон
+        background = new ImageView(new Image(getClass().getResource("/ui/menu_background.png").toExternalForm()));
         background.setFitWidth(screenWidth);
         background.setFitHeight(screenHeight);
 
-        // Створюємо кнопки з вашими зображеннями
-        Button startButton = createImageButton("/ui/menu_play.png");
-        Button settingsButton = createImageButton("/ui/menu_rules.png");
-        Button exitButton = createImageButton("/ui/menu_logout.png");
+        // Кнопки главного меню
+        playButton = new ImageView(new Image(getClass().getResource("/ui/menu_play.png").toExternalForm()));
+        rulesButton = new ImageView(new Image(getClass().getResource("/ui/menu_rules.png").toExternalForm()));
+        exitButton = new ImageView(new Image(getClass().getResource("/ui/menu_exit.png").toExternalForm()));
 
-        // Додаємо обробники подій
-        startButton.setOnAction(e -> startGame());
-        settingsButton.setOnAction(e -> showRules());
-        exitButton.setOnAction(e -> primaryStage.close());
-
-        // Контейнер для кнопок
-        VBox buttonContainer = new VBox(30);
-        buttonContainer.setAlignment(Pos.CENTER);
-        buttonContainer.getChildren().addAll(startButton, settingsButton, exitButton);
-
-        // Головний контейнер
-        StackPane root = new StackPane();
-        root.getChildren().addAll(background, buttonContainer);
-
-        // Створюємо сцену на весь екран
-        Scene scene = new Scene(root, screenWidth, screenHeight);
-
-        // Додаємо кастомний курсор
-        try {
-            Image cursorImage = new Image(getClass().getResource("/ui/cursor.png").toExternalForm());
-            javafx.scene.ImageCursor customCursor = new javafx.scene.ImageCursor(cursorImage, cursorImage.getWidth() / 2, cursorImage.getHeight() / 2);
-            scene.setCursor(customCursor);
-        } catch (Exception e) {
-            System.err.println("Не вдалося завантажити кастомний курсор: " + e.getMessage());
-        }
-
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("Hidden Objects Game");
-        primaryStage.setMaximized(true); // Розгортаємо на весь екран
-        primaryStage.show();
-
-        // Анімація появи меню
-        playMenuAppearAnimation(buttonContainer);
-    }
-
-    private void showRules() {
-        //SoundPlayer.play("button_clicked.mp3");
-
-        // Завантажуємо фон для правил
-        Image rulesBackgroundImage = new Image(getClass().getResourceAsStream("/ui/menu_rules_back.png"));
-        ImageView rulesBackground = new ImageView(rulesBackgroundImage);
+        // Элементы экрана правил
+        rulesBackground = new ImageView(new Image(getClass().getResource("/ui/menu_rules_back.png").toExternalForm()));
         rulesBackground.setFitWidth(screenWidth);
         rulesBackground.setFitHeight(screenHeight);
 
-        // Створюємо кнопку назад
-        Button backButton = createBackButton("/ui/menu_backbut.png");
+        rulesList = new ImageView(new Image(getClass().getResource("/ui/menu_rules_list.png").toExternalForm()));
+        backButton = new ImageView(new Image(getClass().getResource("/ui/menu_back.png").toExternalForm()));
 
-        // Додаємо обробник подій для кнопки назад
-        backButton.setOnAction(e -> showMainMenu());
+        // ✅ ИСПРАВЛЕНО: Используем Rectangle и делаем его НЕкликабельным
+        darkOverlay = new Rectangle(screenWidth, screenHeight);
+        darkOverlay.setFill(Color.BLACK);
+        darkOverlay.setOpacity(0); // Изначально невидим
+        darkOverlay.setMouseTransparent(true); // ✅ ВАЖНО: пропускает клики сквозь себя
 
-        // Створюємо контейнер для правил
-        StackPane rulesRoot = new StackPane();
-        rulesRoot.getChildren().addAll(rulesBackground, backButton);
+        // Позиционирование кнопок главного меню
+        playButton.setLayoutX(650);
+        playButton.setLayoutY(560);
+        rulesButton.setLayoutX(650);
+        rulesButton.setLayoutY(685);
+        exitButton.setLayoutX(650);
+        exitButton.setLayoutY(810);
 
-        // Оновлюємо сцену
-        Scene rulesScene = new Scene(rulesRoot, screenWidth, screenHeight);
+        copyrightText = new Text("Developed by CyberField NeT");
+        copyrightText.setFont(Font.font("Poppins", FontWeight.BOLD, 26));
+        copyrightText.setFill(Color.color(0.255, 0.255, 0.255));
 
-        // Додаємо кастомний курсор
+
+        Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+        double paddingRight = 30;
+        double paddingBottom = 0;
+        copyrightText.setLayoutX(screenBounds.getWidth() - copyrightText.getBoundsInLocal().getWidth() - paddingRight);
+        copyrightText.setLayoutY(screenBounds.getHeight() - paddingBottom);
+    }
+
+    public void show() {
+        startMenuMusic();
+
+        Pane root = new Pane();
+
+        // Добавляем предзагруженный фон
+        root.getChildren().add(background);
+
+        // Добавляем предзагруженные кнопки
+        root.getChildren().addAll(playButton, rulesButton, exitButton, copyrightText);
+
+        // ✅ ВАЖНО: Добавляем оверлей ПОСЛЕДНИМ, но он НЕ блокирует клики
+        root.getChildren().add(darkOverlay);
+
+        Scene scene = new Scene(root, screenWidth, screenHeight);
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Hidden Objects Game");
+        primaryStage.setMaximized(true);
+        primaryStage.setResizable(false);
+        primaryStage.setFullScreenExitHint("");
+
+        primaryStage.show();
+
+        Platform.runLater(() -> primaryStage.setFullScreen(true));
+
+        // Настройка курсора
         try {
-            Image cursorImage = new Image(getClass().getResource("/ui/cursor.png").toExternalForm());
-            javafx.scene.ImageCursor customCursor = new javafx.scene.ImageCursor(cursorImage, cursorImage.getWidth() / 2, cursorImage.getHeight() / 2);
-            rulesScene.setCursor(customCursor);
+            Image cursorImage = new Image(getClass().getResource("/ui/arrow.png").toExternalForm());
+            ImageCursor customCursor = new ImageCursor(cursorImage, cursorImage.getWidth(), cursorImage.getHeight());
+            scene.setCursor(customCursor);
         } catch (Exception e) {
-            System.err.println("Не вдалося завантажити кастомний курсор: " + e.getMessage());
+            System.err.println("Не вдалося завантажити курсор: " + e.getMessage());
         }
 
-        primaryStage.setScene(rulesScene);
+        // Настройка анимации и обработчиков
+        setupButtonAnimation(playButton);
+        setupButtonAnimation(rulesButton);
+        setupButtonAnimation(exitButton);
+        setupButtonAnimation(backButton);
+
+        // Обработчики кликов
+        playButton.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            startGameWithTransition();
+        });
+
+        rulesButton.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            showRules(root);
+        });
+
+        exitButton.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            stopMenuMusic();
+            primaryStage.close();
+        });
+
+        // Обработчик кнопки "Назад"
+        backButton.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            showMainMenu(root);
+        });
     }
 
-    private Button createBackButton(String imagePath) {
+    private void startGameWithTransition() {
+        // ✅ ВАЖНО: Перед анимацией делаем оверлей кликабельным, чтобы блокировать кнопки
+        darkOverlay.setMouseTransparent(false);
+
+        // 1. Сначала плавно затемняем экран
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(800), darkOverlay);
+        fadeOut.setFromValue(0);
+        fadeOut.setToValue(0.9); // 90% непрозрачности
+
+        // 2. Параллельно уменьшаем громкость музыки
+        Timeline volumeDecrease = new Timeline();
+        if (mediaPlayer != null) {
+            volumeDecrease = new Timeline(
+                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), 0.5)),
+                    new KeyFrame(Duration.millis(800), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
+            );
+        }
+
+
+        // Запускаем все анимации параллельно
+        ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
+        transition.setOnFinished(e -> {
+            // Когда анимация завершена - запускаем игру
+            stopMenuMusic();
+            controller.startGame(primaryStage);
+        });
+
+        transition.play();
+    }
+
+    // Метод для запуска музыки главного меню
+    public void startMenuMusic() {
         try {
-            // Завантажуємо зображення для кнопки назад
-            Image buttonImage = new Image(getClass().getResourceAsStream(imagePath));
-            ImageView imageView = new ImageView(buttonImage);
-
-            // Налаштовуємо розмір кнопки назад
-            imageView.setFitWidth(621);
-            imageView.setFitHeight(200);
-
-            // Створюємо кнопку
-            Button button = new Button();
-            button.setGraphic(imageView);
-            button.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
-
-            // Налаштовуємо позицію кнопки (по центру екрана, висота -150)
-            StackPane.setAlignment(button, Pos.BOTTOM_CENTER);
-            button.setTranslateY(-150); // Висота -150 від низу
-
-            // Налаштовуємо ефекти для кнопки
-            setupButtonEffects(button, imageView);
-
-            return button;
-
+            if (mediaPlayer != null) {
+                mediaPlayer.stop();
+            }
+            Media media = new Media(getClass().getResource("/sounds/main_menu.mp3").toExternalForm());
+            mediaPlayer = new MediaPlayer(media);
+            mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            mediaPlayer.setVolume(0.5);
+            mediaPlayer.play();
         } catch (Exception e) {
-            System.err.println("Помилка завантаження зображення: " + imagePath);
-            // Резервна текстова кнопка
-            Button fallbackButton = new Button("Назад");
-            fallbackButton.setStyle("-fx-font-size: 20px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-            StackPane.setAlignment(fallbackButton, Pos.BOTTOM_CENTER);
-            fallbackButton.setTranslateY(-150);
-            setupTextButtonEffects(fallbackButton);
-            return fallbackButton;
+            System.out.println("Не удалось загрузить музыку главного меню: " + e.getMessage());
         }
     }
 
-    private void showMainMenu() {
-        SoundPlayer.play("button_clicked.mp3");
-        show(); // Просто повторно викликаємо метод show() для повернення в головне меню
-    }
-
-    private Button createImageButton(String imagePath) {
-        try {
-            // Завантажуємо зображення для кнопки
-            Image buttonImage = new Image(getClass().getResourceAsStream(imagePath));
-            ImageView imageView = new ImageView(buttonImage);
-
-            // Збільшуємо розмір кнопок для великого екрану
-            imageView.setFitWidth(621);
-            imageView.setFitHeight(200);
-
-            // Створюємо кнопку
-            Button button = new Button();
-            button.setGraphic(imageView);
-
-            // Робимо прозорий фон та рамку
-            button.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
-
-            // Налаштовуємо ефекти для кнопки
-            setupButtonEffects(button, imageView);
-
-            return button;
-
-        } catch (Exception e) {
-            System.err.println("Помилка завантаження зображення: " + imagePath);
-            // Якщо зображення не знайдено, створити текстову кнопку
-            Button fallbackButton = new Button("Кнопка");
-            fallbackButton.setStyle("-fx-font-size: 24px; -fx-padding: 15px 30px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-            setupTextButtonEffects(fallbackButton);
-            return fallbackButton;
+    // Метод для остановки музыки главного меню
+    public void stopMenuMusic() {
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer = null;
         }
     }
 
-    private void setupButtonEffects(Button button, ImageView imageView) {
-        // Ефект тіні
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(javafx.scene.paint.Color.rgb(0, 0, 0, 0.4));
-        shadow.setRadius(15);
-        shadow.setSpread(0.15);
-        shadow.setOffsetX(0);
-        shadow.setOffsetY(6);
-
-        // Ефект світіння
-        Glow glow = new Glow();
-        glow.setLevel(0.3);
-
-        // Анімації
-        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(150), imageView);
-        scaleTransition.setFromX(1.0);
-        scaleTransition.setFromY(1.0);
-        scaleTransition.setToX(1.1);
-        scaleTransition.setToY(1.1);
-
-        TranslateTransition liftTransition = new TranslateTransition(Duration.millis(150), imageView);
-        liftTransition.setToY(-5);
-
+    private void setupButtonAnimation(ImageView button) {
         button.setCursor(Cursor.HAND);
 
-        // Наведення миші
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.rgb(0, 0, 0, 0.4));
+        shadow.setRadius(15);
+        shadow.setSpread(0.15);
+        shadow.setOffsetY(6);
+
+        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(100), button);
+        scaleTransition.setFromX(1.0);
+        scaleTransition.setFromY(1.0);
+        scaleTransition.setToX(1.02);
+        scaleTransition.setToY(1.02);
+
+        TranslateTransition liftTransition = new TranslateTransition(Duration.millis(100), button);
+        liftTransition.setToY(-5);
+
         button.setOnMouseEntered(e -> {
             button.setEffect(shadow);
             scaleTransition.playFromStart();
             liftTransition.playFromStart();
-            imageView.setEffect(glow);
         });
 
-        // Подія коли миша йде
         button.setOnMouseExited(e -> {
             scaleTransition.stop();
             liftTransition.stop();
-            imageView.setScaleX(1.0);
-            imageView.setScaleY(1.0);
-            imageView.setTranslateY(0);
-            imageView.setTranslateX(0);
-            button.setEffect(null);
-            imageView.setEffect(null);
-        });
-
-        // Подія натискання
-        button.setOnMousePressed(e -> {
-            SoundPlayer.play("button_clicked.mp3"); // Звук кліку
-            imageView.setScaleX(0.95);
-            imageView.setScaleY(0.95);
-            imageView.setTranslateY(2);
-        });
-
-        button.setOnMouseReleased(e -> {
-            imageView.setScaleX(1.0);
-            imageView.setScaleY(1.0);
-            imageView.setTranslateY(-5);
-        });
-    }
-
-    private void setupTextButtonEffects(Button button) {
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(javafx.scene.paint.Color.rgb(0, 0, 0, 0.4));
-        shadow.setRadius(10);
-        shadow.setOffsetY(4);
-
-        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(150), button);
-        scaleTransition.setFromX(1.0);
-        scaleTransition.setFromY(1.0);
-        scaleTransition.setToX(1.05);
-        scaleTransition.setToY(1.05);
-
-        button.setCursor(Cursor.HAND);
-
-        button.setOnMouseEntered(e -> {
-            SoundPlayer.play("button_clicked.mp3");
-            button.setEffect(shadow);
-            scaleTransition.playFromStart();
-            button.setStyle("-fx-font-size: 24px; -fx-padding: 15px 30px; -fx-background-color: #45a049; -fx-text-fill: white;");
-        });
-
-        button.setOnMouseExited(e -> {
-            scaleTransition.stop();
             button.setScaleX(1.0);
             button.setScaleY(1.0);
+            button.setTranslateY(0);
             button.setEffect(null);
-            button.setStyle("-fx-font-size: 24px; -fx-padding: 15px 30px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-        });
-
-        button.setOnMousePressed(e -> {
-            SoundPlayer.play("button_clicked.mp3");
-            button.setScaleX(0.95);
-            button.setScaleY(0.95);
-        });
-
-        button.setOnMouseReleased(e -> {
-            button.setScaleX(1.05);
-            button.setScaleY(1.05);
         });
     }
 
-    private void playMenuAppearAnimation(VBox buttonContainer) {
-        // Анімація появи кнопок
-        for (int i = 0; i < buttonContainer.getChildren().size(); i++) {
-            Button button = (Button) buttonContainer.getChildren().get(i);
-            button.setOpacity(0);
-            button.setTranslateY(50);
+    private void showRules(Pane root) {
+        // Позиционирование элементов правил
+        double rulesListWidth = rulesList.getImage().getWidth();
+        double rulesListHeight = rulesList.getImage().getHeight();
 
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(500), button);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.setDelay(Duration.millis(i * 150));
+        // Центрирование списка правил
+        rulesList.setLayoutX(screenWidth / 2 - rulesListWidth / 2);
+        rulesList.setLayoutY(screenHeight / 2 - rulesListHeight / 2);
 
-            TranslateTransition slideUp = new TranslateTransition(Duration.millis(500), button);
-            slideUp.setFromY(50);
-            slideUp.setToY(0);
-            slideUp.setDelay(Duration.millis(i * 150));
+        // Центрирование кнопки "Назад"
+        double buttonWidth = backButton.getImage().getWidth();
+        backButton.setLayoutX(screenWidth / 2 - buttonWidth / 2);
+        backButton.setLayoutY(screenHeight / 2 + rulesListHeight / 2 - 200);
 
-            ParallelTransition parallelTransition = new ParallelTransition(fadeIn, slideUp);
-            parallelTransition.play();
-        }
+        // Установка начальных состояний для анимации
+        rulesList.setOpacity(0);
+        rulesList.setScaleX(0.9);
+        rulesList.setScaleY(0.9);
+        rulesList.setTranslateY(20);
+        backButton.setOpacity(0);
+
+        // Замена содержимого
+        root.getChildren().setAll(rulesBackground, rulesList, backButton);
+        // ✅ Добавляем оверлей ПОСЛЕДНИМ и делаем его НЕкликабельным
+        root.getChildren().add(darkOverlay);
+        darkOverlay.setOpacity(0);
+        darkOverlay.setMouseTransparent(true); // Разрешаем клики на кнопки правил
+
+        // Создание и запуск анимации
+        createAndPlayRulesAnimation();
     }
 
-    private void startGame() {
-        playTransitionAnimation(() -> {
-            Game game = new Game(Collections.emptyList()); // создаём игру без уровней
-            GameController controller = new GameController(game); // передаём игру в контроллер
-            GameView view = new GameView(controller, primaryStage); // создаём View с контроллером и Stage
-            controller.setView(view); // связываем контроллер с View
-            controller.startGame(primaryStage); // запускаем игру
-        });
+    private void showMainMenu(Pane root) {
+        // Просто меняем содержимое
+        root.getChildren().setAll(background, playButton, rulesButton, exitButton, copyrightText);
+        // ✅ Добавляем оверлей ПОСЛЕДНИМ и делаем его НЕкликабельным
+        root.getChildren().add(darkOverlay);
+        darkOverlay.setOpacity(0);
+        darkOverlay.setMouseTransparent(true); // Разрешаем клики на кнопки меню
     }
 
-    private void playTransitionAnimation(Runnable onComplete) {
-        // Анімація зникнення меню перед переходом
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(300), primaryStage.getScene().getRoot());
-        fadeOut.setFromValue(1.0);
-        fadeOut.setToValue(0.0);
-        fadeOut.setOnFinished(e -> onComplete.run());
-        fadeOut.play();
+    private void createAndPlayRulesAnimation() {
+        // Анимация появляется мгновенно, т.к. изображения уже в памяти
+
+        // Анимация для rulesList
+        FadeTransition fadeInRules = new FadeTransition(Duration.millis(250), rulesList);
+        fadeInRules.setFromValue(0);
+        fadeInRules.setToValue(1);
+
+        ScaleTransition scaleInRules = new ScaleTransition(Duration.millis(300), rulesList);
+        scaleInRules.setFromX(0.9);
+        scaleInRules.setFromY(0.9);
+        scaleInRules.setToX(1.0);
+        scaleInRules.setToY(1.0);
+
+        TranslateTransition moveUpRules = new TranslateTransition(Duration.millis(300), rulesList);
+        moveUpRules.setFromY(20);
+        moveUpRules.setToY(0);
+
+        // Анимация для backButton
+        FadeTransition fadeInBack = new FadeTransition(Duration.millis(300), backButton);
+        fadeInBack.setFromValue(0);
+        fadeInBack.setToValue(1);
+        fadeInBack.setDelay(Duration.millis(150));
+
+        // Запускаем все анимации параллельно
+        ParallelTransition parallelAnimation = new ParallelTransition(
+                fadeInRules,
+                scaleInRules,
+                moveUpRules,
+                fadeInBack
+        );
+
+        parallelAnimation.play();
     }
 }

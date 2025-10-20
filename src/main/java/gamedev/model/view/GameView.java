@@ -1,6 +1,7 @@
 package gamedev.model.view;
 
 import gamedev.model.Game;
+import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
 import gamedev.controller.GameController;
@@ -27,6 +28,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -112,16 +114,20 @@ public class GameView {
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
+
         stage.setTitle("Hidden Objects Game");
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.setResizable(false);
         stage.show();
 
+        // ✅ После того как окно показано — включаем fullscreen
+        Platform.runLater(() -> stage.setFullScreen(true));
+
         //########################################/ CUSTOM CURSOR /########################################//
         try {
-            Image cursorImage = new Image(getClass().getResource("/ui/cursor.png").toExternalForm());
-            ImageCursor customCursor = new ImageCursor(cursorImage, cursorImage.getWidth() / 2, cursorImage.getHeight() / 2);
+            Image cursorImage = new Image(getClass().getResource("/ui/magnifying-glass-cursor.png").toExternalForm());
+            ImageCursor customCursor = new ImageCursor(cursorImage, cursorImage.getWidth(), cursorImage.getHeight());
             scene.setCursor(customCursor);
         } catch (Exception e) {
             System.err.println("Не удалось загрузить кастомный курсор: " + e.getMessage());
@@ -235,25 +241,6 @@ public class GameView {
                 volume.setImage(new Image(getClass().getResource("/ui/volume_on.png").toExternalForm()));
             }
         });
-
-        //########################################/ COPYRIGHT /########################################//
-        Text copyrightText = new Text("Developed for CyberField NeT");
-        copyrightText.setFont(Font.font("Poppins", FontWeight.BOLD, 26));
-        copyrightText.setFill(Color.SADDLEBROWN);
-
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.color(0, 0, 0, 0.6));
-        shadow.setOffsetX(2);
-        shadow.setOffsetY(2);
-        shadow.setRadius(3);
-        copyrightText.setEffect(shadow);
-
-        double paddingRight = 20;
-        double paddingBottom = 20;
-        copyrightText.setLayoutX(screenBounds.getWidth() - copyrightText.getBoundsInLocal().getWidth() - paddingRight);
-        copyrightText.setLayoutY(screenBounds.getHeight() - paddingBottom);
-
-        root.getChildren().add(copyrightText);
     }
 
 
@@ -414,7 +401,7 @@ public class GameView {
             ft.setFromValue(1.0);
             ft.setToValue(0.0);
             ft.setOnFinished(e -> root.getChildren().remove(tipView));
-            ft.setDelay(Duration.millis(100));
+            ft.setDelay(Duration.millis(300));
             ft.play();
         } catch (Exception e) {
             System.err.println("Ошибка загрузки изображения подсказки: /tips/" + imageName + " " + e.getMessage());

@@ -2,6 +2,7 @@ package gamedev.controller;
 
 import gamedev.model.*;
 import gamedev.model.view.GameView;
+import gamedev.model.view.MainMenu;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -21,8 +22,10 @@ public class GameController {
     private MediaPlayer mediaPlayer; // Перенесено из GameView
     private boolean soundEffectsMuted = false;
     private Stage stage;
-
     private final Random random = new Random();
+
+    public GameController() {
+    }
 
     public void startGame(Stage stage) {
         //########################################/ AUDIO /########################################//
@@ -336,11 +339,10 @@ public class GameController {
             mediaPlayer.stop();
         }
 
-        stage.close();
-
-        // Here you can return to start menu or smth like that
-        // Example: controller.showMainMenu();
+        MainMenu mainMenu = new MainMenu(stage, this);
+        mainMenu.show();
     }
+
 
     private String getRandomTipFileName(int start, int end) {
         // nextInt(bound) возвращает число от 0 до bound-1.

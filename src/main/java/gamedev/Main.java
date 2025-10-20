@@ -1,6 +1,7 @@
 package gamedev;
 
 import gamedev.controller.GameController;
+import gamedev.model.Game;
 import gamedev.model.view.MainMenu;
 import javafx.application.Application;
 import javafx.scene.control.Button;
@@ -10,9 +11,11 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        MainMenu mainMenu = new MainMenu(primaryStage);
+        GameController controller = new GameController(); // создаём контроллер
+        MainMenu mainMenu = new MainMenu(primaryStage, controller); // передаём его в меню
         mainMenu.show();
     }
+
 
     public static void main(String[] args) {
         launch(args);
