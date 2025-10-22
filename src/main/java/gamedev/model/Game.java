@@ -44,5 +44,4 @@ public class Game {
     public long getTotalThreats() {
         return totalThreats;
     }
-
 }

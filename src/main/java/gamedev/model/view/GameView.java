@@ -1,6 +1,7 @@
 package gamedev.model.view;
 
 import gamedev.model.Game;
+import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
@@ -8,10 +9,6 @@ import gamedev.controller.GameController;
 import gamedev.model.GameObject;
 import gamedev.model.Level;
 import gamedev.model.SoundPlayer;
-import javafx.animation.FadeTransition;
-import javafx.animation.ScaleTransition;
-import javafx.animation.TranslateTransition;
-import javafx.animation.ParallelTransition;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -19,9 +16,13 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.text.Font;
 import javafx.scene.paint.Color;
@@ -44,9 +45,14 @@ public class GameView {
     private ImageView confirmNo;
     private boolean isConfirmDialogVisible = false;
     private ParallelTransition confirmPulseAnimation;
+
     private ImageView endDialog;
-    private ImageView endOk;
+    private ImageView endPlayAgain;
+    private ImageView endExit;
     private boolean isEndDialogVisible = false;
+
+    private Rectangle darkOverlay;
+
 
     private Text scoreText;
 
@@ -58,19 +64,21 @@ public class GameView {
     // Панель історії повідомлень з прокруткою
     private VBox messageHistoryBox;
     private ScrollPane messageScrollPane;
+    private MediaPlayer mediaPlayer;
 
-    public GameView(GameController controller) {
-        this.controller = controller;
-        this.stage = stage;
-        this.root = new Pane();
-    }
+//    public GameView(GameController controller) {
+//        this.controller = controller;
+//        this.stage = stage;
+//        this.root = new Pane();
+//    }
 
     public void start(Stage stage) {
         root = new Pane();
         //########################################/ UI /########################################//
-        Image ui_sideImage = new Image(getClass().getResource("/ui/ui_side.png").toExternalForm());
-        ImageView ui_side_left = new ImageView(ui_sideImage);
-        ImageView ui_side_right = new ImageView(ui_sideImage);
+        Image ui_side_rightImage = new Image(getClass().getResource("/ui/ui_side_right.png").toExternalForm());
+        Image ui_side_leftImage = new Image(getClass().getResource("/ui/ui_side_left.png").toExternalForm());
+        ImageView ui_side_left = new ImageView(ui_side_leftImage);
+        ImageView ui_side_right = new ImageView(ui_side_rightImage);
 
         Image logoImage = new Image(getClass().getResource("/ui/logo.png").toExternalForm());
         ImageView logo = new ImageView(logoImage);
@@ -100,6 +108,19 @@ public class GameView {
         confirmNo = new ImageView(confirmNoImage);
         confirmNo.setVisible(false);
 
+        //########################################/ END DIALOG /########################################//
+        Image endDialogImage = new Image(getClass().getResource("/ui/end_dialog.png").toExternalForm());
+        endDialog = new ImageView(endDialogImage);
+        endDialog.setVisible(false);
+
+        Image endPlayAgainImage = new Image(getClass().getResource("/ui/end_play_again.png").toExternalForm());
+        endPlayAgain = new ImageView(endPlayAgainImage);
+        endPlayAgain.setVisible(false);
+
+        Image endExitImage = new Image(getClass().getResource("/ui/end_exit.png").toExternalForm());
+        endExit = new ImageView(endExitImage);
+        endExit.setVisible(false);
+
 
         //########################################/ Pane /########################################//
         root = new Pane();
@@ -115,20 +136,58 @@ public class GameView {
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
 
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+            }
+        });
+        stage.setFullScreenExitHint("");
+        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+
+
+        scene.getStylesheets().add(getClass().getResource("/styles/game.css").toExternalForm());
         stage.setTitle("Hidden Objects Game");
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.setResizable(false);
         stage.show();
 
+        Screen screen = Screen.getPrimary();
+        double screenWidth = screen.getBounds().getWidth();
+        double screenHeight = screen.getBounds().getHeight();
+        darkOverlay = new Rectangle(screenWidth, screenHeight);
+        darkOverlay.setFill(Color.color(0.078, 0.078, 0.078));
+        darkOverlay.setOpacity(0); // Изначально невидим
+        darkOverlay.setMouseTransparent(true); // ✅ ВАЖНО: пропускает клики сквозь себя
+
         // ✅ После того как окно показано — включаем fullscreen
         Platform.runLater(() -> stage.setFullScreen(true));
 
         //########################################/ CUSTOM CURSOR /########################################//
         try {
-            Image cursorImage = new Image(getClass().getResource("/ui/magnifying-glass-cursor.png").toExternalForm());
-            ImageCursor customCursor = new ImageCursor(cursorImage, cursorImage.getWidth(), cursorImage.getHeight());
-            scene.setCursor(customCursor);
+            Image magnifyingCursorImage = new Image(getClass().getResource("/ui/magnifying-glass-cursor.png").toExternalForm());
+            Image arrowCursorImage = new Image(getClass().getResource("/ui/arrow.png").toExternalForm());
+
+            ImageCursor magnifyingCursor = new ImageCursor(magnifyingCursorImage, magnifyingCursorImage.getWidth() / 2, magnifyingCursorImage.getHeight() / 2);
+            ImageCursor arrowCursor = new ImageCursor(arrowCursorImage, 3, 2);
+
+            // Устанавливаем начальный курсор
+            scene.setCursor(magnifyingCursor);
+
+            // ✅ ОБРАБОТЧИК ДВИЖЕНИЯ МЫШИ
+            scene.setOnMouseMoved(event -> {
+                double mouseX = event.getX();
+
+                // Игровое поле: от x >= 420 до x <= 1500
+                if (mouseX >= 415 && mouseX <= 1495) {
+                    // Курсор-лупа на игровом поле
+                    scene.setCursor(magnifyingCursor);
+                } else {
+                    // Обычная стрелка за пределами игрового поля
+                    scene.setCursor(arrowCursor);
+                }
+            });
+
         } catch (Exception e) {
             System.err.println("Не удалось загрузить кастомный курсор: " + e.getMessage());
         }
@@ -145,7 +204,7 @@ public class GameView {
         ui_side_right.setLayoutY(0);
         root.getChildren().add(ui_side_right);
 
-        score.setLayoutX(635);
+        score.setLayoutX(screenBounds.getWidth() / 2 - 235);
         score.setLayoutY(0);
         root.getChildren().add(score);
 
@@ -167,7 +226,7 @@ public class GameView {
 
         //########################################/ SCORE TEXT /########################################//
         scoreText = new Text("0/" + controller.getTotalThreats());
-        scoreText.setFont(Font.font("Poppins", FontWeight.BLACK, 64));
+        scoreText.setFont(Font.font("Poppins", FontWeight.BLACK, 48));
         scoreText.setFill(Color.WHITE);
 
         DropShadow dropShadow = new DropShadow();
@@ -177,26 +236,46 @@ public class GameView {
         dropShadow.setRadius(4.0);
         scoreText.setEffect(dropShadow);
 
-        scoreText.setLayoutX(1155);
-        scoreText.setLayoutY(90);
+        scoreText.setLayoutX(1083);
+        scoreText.setLayoutY(67);
         root.getChildren().add(scoreText);
-        root.getChildren().addAll(confirmDialog, confirmYes, confirmNo);
+        root.getChildren().addAll(confirmDialog, confirmYes, confirmNo, endDialog, endExit, endPlayAgain);
+
+        setupButtonAnimation(endPlayAgain);
+        setupButtonAnimation(endExit);
 
         //########################################/ MESSAGE HISTORY PANEL /########################################//
+        // Загружаем CSS
+        scene.getStylesheets().add(getClass().getResource("/styles/game.css").toExternalForm());
+
         messageHistoryBox = new VBox(10);
-        messageHistoryBox.setPrefWidth(200);
-        messageHistoryBox.setStyle(
-                "-fx-background-color: rgba(0,0,0,0.3); -fx-padding: 10; -fx-border-radius: 5; -fx-background-radius: 5;"
-        );
+        messageHistoryBox.setPrefWidth(350);
+        messageHistoryBox.getStyleClass().add("message-history-panel"); // Применяем CSS класс
 
         messageScrollPane = new ScrollPane(messageHistoryBox);
-        messageScrollPane.setLayoutX(10);
-        messageScrollPane.setLayoutY(150);
-        messageScrollPane.setPrefHeight(900);
-        messageScrollPane.setPrefWidth(400);
+        messageScrollPane.setLayoutX(20);
+        messageScrollPane.setLayoutY(210);
+        messageScrollPane.setPrefHeight(800);
+        messageScrollPane.setPrefWidth(380);
         messageScrollPane.setFitToWidth(true);
-        messageScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
+        messageScrollPane.getStyleClass().add("message-scroll-pane");
+
         root.getChildren().add(messageScrollPane);
+
+        // Заголовок панели
+        Text panelTitle = new Text("ІСТОРІЯ ПОВІДОМЛЕНЬ");
+        panelTitle.getStyleClass().add("panel-title");
+
+        // Фон для заголовка
+        Rectangle titleBackground = new Rectangle(380, 60);
+        titleBackground.getStyleClass().add("title-background");
+        titleBackground.setLayoutX(20);
+        titleBackground.setLayoutY(150);
+
+        panelTitle.setLayoutX(45);
+        panelTitle.setLayoutY(190);
+
+        root.getChildren().addAll(titleBackground, panelTitle);
 
         setupButtonAnimation(logout);
         setupButtonAnimation(music);
@@ -245,27 +324,78 @@ public class GameView {
 
 
     //########################################/ MESSAGE HISTORY /########################################//
-    public void showMessage(String message) {
+    public void showMessage(String message, boolean isFinalThreat) {
         Text msgText = new Text(message);
-        msgText.setFont(Font.font("Poppins", FontWeight.NORMAL, 18));
-        msgText.setWrappingWidth(messageHistoryBox.getPrefWidth() - 20);
+        msgText.setWrappingWidth(messageHistoryBox.getPrefWidth() - 25);
 
-        // Колір за змістом
-        if (message.startsWith("Загрозу знайдено")) {
-            msgText.setFill(Color.RED);
+        boolean isThreatFound = message.startsWith("Загрозу знайдено");
+        msgText.getStyleClass().add("message-text");
+        if (isThreatFound) {
+            msgText.getStyleClass().add("message-threat-found");
         } else if (message.startsWith("Цю загрозу вже було знайдено!")) {
-            msgText.setFill(Color.GOLD);
+            msgText.getStyleClass().add("message-already-found");
         } else if (message.startsWith("Цей об'єкт є безпечним!")) {
-            msgText.setFill(Color.LIME);
-        } else {
-            msgText.setFill(Color.WHITE);
+            msgText.getStyleClass().add("message-safe-object");
         }
 
+        msgText.setOpacity(0);
         messageHistoryBox.getChildren().add(0, msgText);
 
-        // Автопрокрутка вверх
-        messageScrollPane.layout();
-        messageScrollPane.setVvalue(0);
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(400), msgText);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        fadeIn.setOnFinished(e -> {
+            Platform.runLater(() -> {
+                messageScrollPane.setVvalue(0);
+
+                limitMessageHistory();
+
+                // ✅ Проверяем победу ТОЛЬКО если это финальная угроза
+                if (isFinalThreat) {
+                    PauseTransition victoryPause = new PauseTransition(Duration.millis(100));
+                    victoryPause.setOnFinished(finalEv -> {
+                        showEndDialog();
+                    });
+                    victoryPause.play();
+                }
+            });
+        });
+
+        fadeIn.play();
+    }
+
+    private void limitMessageHistory() {
+        // ✅ Используем количество угроз как максимальный размер
+        final int MAX_TOTAL_MESSAGES = (int) controller.getTotalThreats();
+
+        // Если угроз меньше 5, устанавливаем минимальный лимит для удобства
+        final int MIN_LIMIT = 5;
+        final int actualLimit = Math.max(MAX_TOTAL_MESSAGES, MIN_LIMIT);
+
+        while (messageHistoryBox.getChildren().size() > actualLimit) {
+            int oldestNonThreatIndex = -1;
+
+            // 1. Ищем самую старую не-угрозу
+            for (int i = messageHistoryBox.getChildren().size() - 1; i >= 0; i--) {
+                javafx.scene.Node child = messageHistoryBox.getChildren().get(i);
+                if (child instanceof Text) {
+                    Text historyText = (Text) child;
+                    if (!historyText.getText().startsWith("Загрозу знайдено")) {
+                        oldestNonThreatIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (oldestNonThreatIndex != -1) {
+                // 2. Если найдена, удаляем ее
+                messageHistoryBox.getChildren().remove(oldestNonThreatIndex);
+            } else {
+                // 3. Если остались только угрозы, удаляем самую старую угрозу
+                messageHistoryBox.getChildren().remove(messageHistoryBox.getChildren().size() - 1);
+            }
+        }
     }
 
     //########################################/ CONFIRM DIALOG /########################################//
@@ -344,7 +474,9 @@ public class GameView {
     }
 
     private void setupButtonAnimation(ImageView button) {
-        button.setCursor(Cursor.HAND); // стандартная рука для кнопок
+        Image handCursorImage = new Image(MainMenu.class.getResource("/ui/hand.png").toExternalForm());
+        ImageCursor handCursor = new ImageCursor(handCursorImage, 3, 2);
+        button.setCursor(handCursor);
 
         DropShadow shadow = new DropShadow();
         shadow.setColor(Color.rgb(0, 0, 0, 0.4));
@@ -382,10 +514,6 @@ public class GameView {
     public void updateScore(int found, long total) {
         scoreText.setText(found + "/" + total);
 
-        if (found == total) {
-            showEndMessage("Ти молодець!\nРада по кібербезпеці: Не відкривай підозрілі посилання та використовуй складні паролі.");
-            showEndDialog();
-        }
     }
 
 
@@ -407,31 +535,136 @@ public class GameView {
             System.err.println("Ошибка загрузки изображения подсказки: /tips/" + imageName + " " + e.getMessage());
         }
     }
-    private void showEndMessage(String message) {
-        Text endText = new Text(message);
-        endText.setFont(Font.font("Poppins", FontWeight.BOLD, 24));
-        endText.setFill(Color.LIME);
-        endText.setWrappingWidth(300);
 
-        // Позиция справа
+    public void showEndDialog() {
+        if (isEndDialogVisible) return;
+        isEndDialogVisible = true;
+
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-        endText.setLayoutX(screenBounds.getWidth() - 400); // справа
-        endText.setLayoutY(500);
+        double dialogWidth = 700;
+        double dialogHeight = 400;
+        double x = screenBounds.getWidth() / 2;
+        double y = screenBounds.getHeight() / 2;
 
-        DropShadow dropShadow = new DropShadow();
-        dropShadow.setColor(Color.color(0, 0, 0, 0.7));
-        dropShadow.setOffsetX(2);
-        dropShadow.setOffsetY(2);
-        dropShadow.setRadius(3);
-        endText.setEffect(dropShadow);
+        endDialog.setLayoutX(x - 400);
+        endDialog.setLayoutY(y - 130);
 
-        root.getChildren().add(endText);
+        endPlayAgain.setLayoutX(x - 390);   // отступы подгонишь под свой дизайн
+        endPlayAgain.setLayoutY(y + 21);
+        endExit.setLayoutX(x);
+        endExit.setLayoutY(y + 21);
 
-        FadeTransition ft = new FadeTransition(Duration.seconds(8), endText);
-        ft.setFromValue(1.0);
-        ft.setToValue(0.0);
-        ft.setOnFinished(e -> root.getChildren().remove(endText));
-        ft.play();
+        endDialog.setVisible(true);
+        endPlayAgain.setVisible(true);
+        endExit.setVisible(true);
+        //setGameInteraction(false);
+
+        // Анимация появления
+        endDialog.setOpacity(0);
+        endDialog.setScaleX(0.8);
+        endDialog.setScaleY(0.8);
+        endDialog.setTranslateY(40);
+
+        endPlayAgain.setOpacity(0);
+        endExit.setOpacity(0);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), endDialog);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(300), endDialog);
+        scaleIn.setFromX(0.8);
+        scaleIn.setFromY(0.8);
+        scaleIn.setToX(1.0);
+        scaleIn.setToY(1.0);
+
+        TranslateTransition moveUp = new TranslateTransition(Duration.millis(300), endDialog);
+        moveUp.setFromY(40);
+        moveUp.setToY(0);
+
+        FadeTransition fadeYes = new FadeTransition(Duration.millis(250), endPlayAgain);
+        fadeYes.setFromValue(0);
+        fadeYes.setToValue(1);
+
+        FadeTransition fadeNo = new FadeTransition(Duration.millis(250), endExit);
+        fadeNo.setFromValue(0);
+        fadeNo.setToValue(1);
+
+        ParallelTransition endDialogAppear = new ParallelTransition(fadeIn, scaleIn, moveUp);
+        javafx.animation.SequentialTransition total =
+                new javafx.animation.SequentialTransition(endDialogAppear, new ParallelTransition(fadeYes, fadeNo));
+        total.setOnFinished(e -> {
+            // Отключаем взаимодействие только после полного появления диалога
+            setGameInteraction(false);
+        });
+        total.play();
+
+        // Кнопки
+        endPlayAgain.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            hideEndDialog();
+            messageHistoryBox.getChildren().clear();
+
+            SoundPlayer.stopAll();
+            controller.stopGameMusic();
+            controller.resetGame();
+        });
+
+        endExit.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            hideEndDialog();
+
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.millis(300));
+            pause.setOnFinished(ev -> {
+                try {
+                    // ✅ ВАЖНО: Делаем оверлей кликабельным ПЕРЕД анимацией
+                    darkOverlay.setMouseTransparent(false);
+
+                    // Останавливаем все звуки из игры
+                    SoundPlayer.stopAll();
+                    controller.stopGameMusic();
+
+                    boolean muted = controller.areSoundEffectsMuted();
+                    SoundPlayer.setMuted(muted);
+
+                    // 1. Сначала плавно затемняем экран
+                    FadeTransition fadeOut = new FadeTransition(Duration.millis(800), darkOverlay);
+                    fadeOut.setFromValue(0);
+                    fadeOut.setToValue(0.9); // 90% непрозрачности
+
+                    // 2. Параллельно уменьшаем громкость музыки
+                    Timeline volumeDecrease = new Timeline();
+                    if (mediaPlayer != null) {
+                        volumeDecrease = new Timeline(
+                                new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), 0.5)),
+                                new KeyFrame(Duration.millis(800), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
+                        );
+                    }
+
+                    // Запускаем все анимации параллельно
+                    ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
+                    transition.setOnFinished(event -> {
+                        // ✅ Открываем главное меню после завершения анимации
+                        controller.exitGame(stage);
+                        MainMenu mainMenu = new MainMenu(stage, controller);
+                        mainMenu.show();
+                    });
+
+                    transition.play();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+            pause.play();
+        });
+    }
+
+    private void hideEndDialog() {
+        isEndDialogVisible = false;
+        endDialog.setVisible(false);
+        endPlayAgain.setVisible(false);
+        endExit.setVisible(false);
+        setGameInteraction(true);
     }
 
     private Stage stage;
@@ -442,31 +675,6 @@ public class GameView {
     }
     public Pane getRootPane() {
         return root;
-    }
-
-    public void showEndDialog() {
-        if (isEndDialogVisible) return;
-        isEndDialogVisible = true;
-
-        javafx.application.Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Кінець гри");
-            alert.setHeaderText("Вітаємо! Ви знайшли всі предмети 🎉");
-            alert.setContentText("Бажаєте почати заново чи вийти з гри?");
-
-            ButtonType playAgain = new ButtonType("Почати заново");
-            ButtonType exit = new ButtonType("Вийти");
-            alert.getButtonTypes().setAll(playAgain, exit);
-
-            alert.showAndWait().ifPresent(response -> {
-                if (response == playAgain) {
-                    controller.resetGame();
-                    isEndDialogVisible = false; // дозволяємо наступний діалог у майбутньому
-                } else if (response == exit) {
-                    javafx.application.Platform.exit(); // повністю закриваємо додаток
-                }
-            });
-        });
     }
 
     public Scene getScene() {

@@ -23,11 +23,13 @@ public class GameController {
     private boolean soundEffectsMuted = false;
     private Stage stage;
     private final Random random = new Random();
+    private MediaPlayer gameMusicPlayer; // Добавляем поле для музыки игры
 
     public GameController() {
     }
 
     public void startGame(Stage stage) {
+        stopGameMusic();
         //########################################/ AUDIO /########################################//
         try {
             Media media = new Media(getClass().getResource("/sounds/background.mp3").toExternalForm());
@@ -84,7 +86,7 @@ public class GameController {
         ImageView water_bottle = new ImageView(water_bottleImage);
 
         GameObject usbObj = new GameObject(
-                "USB-drive",
+                "USB-флешка",
                 true,
                 ThreatType.USB_DRIVE,
                 usb,
@@ -92,7 +94,7 @@ public class GameController {
         );
 
         GameObject calculatorObj = new GameObject(
-                "Calculator",
+                "Калькулятор",
                 false,
                 ThreatType.NO_THREAT,
                 calculator,
@@ -100,7 +102,7 @@ public class GameController {
         );
 
         GameObject cdObj = new GameObject(
-                "CD-disk",
+                "CD-диск",
                 true,
                 ThreatType.SUSPICIOUS_CD,
                 cd,
@@ -108,7 +110,7 @@ public class GameController {
         );
 
         GameObject pencilsObj = new GameObject(
-                "Pencils",
+                "Олівці",
                 false,
                 ThreatType.NO_THREAT,
                 pencils,
@@ -116,7 +118,7 @@ public class GameController {
         );
 
         GameObject plantObj = new GameObject(
-                "Plant",
+                "Рослина",
                 false,
                 ThreatType.NO_THREAT,
                 plant,
@@ -124,7 +126,7 @@ public class GameController {
         );
 
         GameObject cupObj = new GameObject(
-                "Cup",
+                "Чашка кави",
                 false,
                 ThreatType.NO_THREAT,
                 cup,
@@ -132,7 +134,7 @@ public class GameController {
         );
 
         GameObject phishing_mailObj = new GameObject(
-                "Phishing_mail",
+                "Фішинговий лист",
                 true,
                 ThreatType.PHISHING_EMAIL,
                 phishing_mail,
@@ -140,7 +142,7 @@ public class GameController {
         );
 
         GameObject login_stickerObj = new GameObject(
-                "Login_sticker",
+                "Дані для входу",
                 true,
                 ThreatType.STICKY_NOTE_PASSWORD,
                 login_sticker,
@@ -148,7 +150,7 @@ public class GameController {
         );
 
         GameObject mouseObj = new GameObject(
-                "Mouse",
+                "Миша",
                 false,
                 ThreatType.NO_THREAT,
                 mouse,
@@ -156,7 +158,7 @@ public class GameController {
         );
 
         GameObject penObj = new GameObject(
-                "Pen",
+                "Ручка",
                 false,
                 ThreatType.NO_THREAT,
                 pen,
@@ -164,7 +166,7 @@ public class GameController {
         );
 
         GameObject phishing_notificationObj = new GameObject(
-                "Phishing_notification",
+                "Фішингове повідомлення",
                 true,
                 ThreatType.PHISHING_NOTIFICATION,
                 phishing_notification,
@@ -172,7 +174,7 @@ public class GameController {
         );
 
         GameObject phoneObj = new GameObject(
-                "Phone",
+                "Смартфон",
                 true,
                 ThreatType.PHONE,
                 phone,
@@ -180,7 +182,7 @@ public class GameController {
         );
 
         GameObject water_bottleObj = new GameObject(
-                "Water_bottle",
+                "Пляжка води",
                 false,
                 ThreatType.NO_THREAT,
                 water_bottle,
@@ -241,8 +243,10 @@ public class GameController {
                 phoneObj, water_bottleObj), background);
         game = new Game(List.of(testLevel));
 
-        view = new GameView(this);
+        this.stage = stage;
+        view = new GameView(this, stage);
         view.start(stage);
+
     }
 
     // GameController.java
@@ -267,22 +271,19 @@ public class GameController {
             // 3. Обновляем текст на экране через View
             view.updateScore(game.getThreatsFound(), game.getTotalThreats());
 
-            // Проверка конца игры
-            if (game.getThreatsFound() >= game.getTotalThreats()) {
-                view.showEndDialog();
-                return;
-            }
-
-
             // 4. (Рекомендуется) Даем визуальную обратную связь
             obj.getImage().setDisable(true);
             obj.getImage().setOpacity(0.6);
 
-            view.showMessage("Загрозу знайдено: " + obj.getName());
+            // ✅ ИСПРАВЛЕНИЕ: Передаем информацию о том, является ли это финальной угрозой
+            boolean isFinalThreat = (game.getThreatsFound() == game.getTotalThreats());
+            view.showMessage("Загрозу знайдено: " + obj.getName(), isFinalThreat);
+
+            // ❌ УБИРАЕМ вызов showEndDialog() отсюда - он будет вызван в view после анимации
 
         } else if (obj.isThreat() && obj.isFound()) {
             // Если кликнули по уже найденной угрозе
-            view.showMessage("Цю загрозу вже було знайдено!");
+            view.showMessage("Цю загрозу вже було знайдено!", false);
             return; // Выходим, чтобы не показывать подсказку
 
         } else {
@@ -291,7 +292,7 @@ public class GameController {
                 SoundPlayer.play("button_clicked.mp3"); // Звук ошибки
             }
             tipFileName = getRandomTipFileName(6, 10);
-            view.showMessage("Цей об'єкт є безпечним!");
+            view.showMessage("Цей об'єкт є безпечним!", false);
         }
 
         // ----------- Отображение подсказки -----------
@@ -357,10 +358,23 @@ public class GameController {
         game.reset();
         view.updateScore(game.getThreatsFound(), game.getTotalThreats());
     }
+
     public GameController(Game game) {
         this.game = game;
     }
     public void setView(GameView view) {
         this.view = view;
     }
+
+    public void stopGameMusic() {
+        if (gameMusicPlayer != null) {
+            gameMusicPlayer.stop();
+            gameMusicPlayer = null;
+        }
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
 }

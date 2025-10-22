@@ -29,7 +29,7 @@ public class MainMenu {
     private final double screenWidth;
     private final double screenHeight;
     private final GameController controller;
-    private MediaPlayer mediaPlayer;
+    private static MediaPlayer mediaPlayer;
 
     // Все элементы создаются сразу при создании MainMenu
     private final ImageView rulesBackground;
@@ -45,6 +45,7 @@ public class MainMenu {
     private final Rectangle darkOverlay;
 
     public MainMenu(Stage primaryStage, GameController controller) {
+
         this.primaryStage = primaryStage;
         this.controller = controller;
 
@@ -72,7 +73,7 @@ public class MainMenu {
 
         // ✅ ИСПРАВЛЕНО: Используем Rectangle и делаем его НЕкликабельным
         darkOverlay = new Rectangle(screenWidth, screenHeight);
-        darkOverlay.setFill(Color.BLACK);
+        darkOverlay.setFill(Color.color(0.078, 0.078, 0.078));
         darkOverlay.setOpacity(0); // Изначально невидим
         darkOverlay.setMouseTransparent(true); // ✅ ВАЖНО: пропускает клики сквозь себя
 
@@ -84,14 +85,14 @@ public class MainMenu {
         exitButton.setLayoutX(650);
         exitButton.setLayoutY(810);
 
-        copyrightText = new Text("Developed by CyberField NeT");
-        copyrightText.setFont(Font.font("Poppins", FontWeight.BOLD, 26));
+        copyrightText = new Text("© 2025 CyberField NET. All rights reserved.");
+        copyrightText.setFont(Font.font("Poppins", FontWeight.BLACK, 26));
         copyrightText.setFill(Color.color(0.255, 0.255, 0.255));
 
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         double paddingRight = 30;
-        double paddingBottom = 0;
+        double paddingBottom = -10;
         copyrightText.setLayoutX(screenBounds.getWidth() - copyrightText.getBoundsInLocal().getWidth() - paddingRight);
         copyrightText.setLayoutY(screenBounds.getHeight() - paddingBottom);
     }
@@ -119,12 +120,22 @@ public class MainMenu {
 
         primaryStage.show();
 
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                event.consume(); // полностью игнорируем клавишу Esc
+            }
+        });
+
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+
+
         Platform.runLater(() -> primaryStage.setFullScreen(true));
 
         // Настройка курсора
         try {
             Image cursorImage = new Image(getClass().getResource("/ui/arrow.png").toExternalForm());
-            ImageCursor customCursor = new ImageCursor(cursorImage, cursorImage.getWidth(), cursorImage.getHeight());
+            ImageCursor customCursor = new ImageCursor(cursorImage, 3, 2);
             scene.setCursor(customCursor);
         } catch (Exception e) {
             System.err.println("Не вдалося завантажити курсор: " + e.getMessage());
@@ -161,29 +172,24 @@ public class MainMenu {
     }
 
     private void startGameWithTransition() {
-        // ✅ ВАЖНО: Перед анимацией делаем оверлей кликабельным, чтобы блокировать кнопки
         darkOverlay.setMouseTransparent(false);
 
-        // 1. Сначала плавно затемняем экран
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(800), darkOverlay);
-        fadeOut.setFromValue(0);
-        fadeOut.setToValue(0.9); // 90% непрозрачности
-
-        // 2. Параллельно уменьшаем громкость музыки
+        // ✅ Быстрая анимация уменьшения громкости (200ms вместо 800ms)
         Timeline volumeDecrease = new Timeline();
         if (mediaPlayer != null) {
             volumeDecrease = new Timeline(
-                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), 0.5)),
-                    new KeyFrame(Duration.millis(800), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
+                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), mediaPlayer.getVolume())),
+                    new KeyFrame(Duration.millis(200), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
             );
         }
 
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), darkOverlay); // Укороченная анимация
+        fadeOut.setFromValue(0);
+        fadeOut.setToValue(0.9);
 
-        // Запускаем все анимации параллельно
         ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
         transition.setOnFinished(e -> {
-            // Когда анимация завершена - запускаем игру
-            stopMenuMusic();
+            stopMenuMusic(); // Останавливаем после быстрой анимации
             controller.startGame(primaryStage);
         });
 
@@ -191,16 +197,17 @@ public class MainMenu {
     }
 
     // Метод для запуска музыки главного меню
-    public void startMenuMusic() {
+    public static void startMenuMusic() {
         try {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
+            if (mediaPlayer == null) {
+                Media media = new Media(MainMenu.class.getResource("/sounds/main_menu.mp3").toExternalForm());
+                mediaPlayer = new MediaPlayer(media);
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                mediaPlayer.setVolume(0.5);
+                mediaPlayer.play();
+            } else if (mediaPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
+                mediaPlayer.play();
             }
-            Media media = new Media(getClass().getResource("/sounds/main_menu.mp3").toExternalForm());
-            mediaPlayer = new MediaPlayer(media);
-            mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-            mediaPlayer.setVolume(0.5);
-            mediaPlayer.play();
         } catch (Exception e) {
             System.out.println("Не удалось загрузить музыку главного меню: " + e.getMessage());
         }
@@ -215,7 +222,9 @@ public class MainMenu {
     }
 
     private void setupButtonAnimation(ImageView button) {
-        button.setCursor(Cursor.HAND);
+        Image handCursorImage = new Image(MainMenu.class.getResource("/ui/hand.png").toExternalForm());
+        ImageCursor handCursor = new ImageCursor(handCursorImage, 3, 2);
+        button.setCursor(handCursor);
 
         DropShadow shadow = new DropShadow();
         shadow.setColor(Color.rgb(0, 0, 0, 0.4));
