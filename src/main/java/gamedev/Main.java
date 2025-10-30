@@ -11,8 +11,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        GameController controller = new GameController(); // создаём контроллер
-        MainMenu mainMenu = new MainMenu(primaryStage, controller); // передаём его в меню
+        GameController controller = new GameController();
+        MainMenu mainMenu = new MainMenu(primaryStage, controller);
         mainMenu.show();
     }
 

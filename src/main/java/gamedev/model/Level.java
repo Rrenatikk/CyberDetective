@@ -1,17 +1,22 @@
 package gamedev.model;
 
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import java.util.List;
 
 public class Level {
     private int number;
     private List<GameObject> objects;
-    private ImageView background;
+    private Image backgroundImage;
+    private ImageView backgroundView;
 
     public Level(int number, List<GameObject> objects, ImageView background) {
         this.number = number;
         this.objects = objects;
-        this.background = background;
+        this.backgroundImage = background.getImage();
+        this.backgroundView = new ImageView(backgroundImage); // создаем копию
+        this.backgroundView.setLayoutX(0);
+        this.backgroundView.setLayoutY(0);
     }
 
     public List<GameObject> getObjects() {
@@ -19,6 +24,10 @@ public class Level {
     }
 
     public ImageView getBackground() {
-        return background;
+        // Возвращаем новый ImageView каждый раз, если нужно
+        ImageView bg = new ImageView(backgroundImage);
+        bg.setLayoutX(0);
+        bg.setLayoutY(0);
+        return bg;
     }
 }

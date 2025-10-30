@@ -4,6 +4,7 @@ import gamedev.model.Game;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.ImageCursor;
 import gamedev.controller.GameController;
 import gamedev.model.GameObject;
@@ -49,11 +50,12 @@ public class GameView {
     private ImageView endDialog;
     private ImageView endPlayAgain;
     private ImageView endExit;
+    private ImageView endPlayNext;
     private boolean isEndDialogVisible = false;
 
     private Rectangle darkOverlay;
 
-
+    private Group levelGroup;
     private Text scoreText;
 
     // UI elements
@@ -74,6 +76,25 @@ public class GameView {
 
     public void start(Stage stage) {
         root = new Pane();
+
+        levelGroup = new Group();
+
+        //########################################/ ЗАГРУЗКА ТЕКУЩЕГО УРОВНЯ /########################################//
+        Level level = controller.getCurrentLevel();
+
+        // Добавляем фон уровня в levelGroup
+        ImageView background = level.getBackground();
+        levelGroup.getChildren().add(background);
+
+        // Добавляем объекты уровня в levelGroup
+        for (GameObject obj : level.getObjects()) {
+            obj.getImage().setOnMouseClicked(e -> controller.onObjectClicked(obj));
+            levelGroup.getChildren().add(obj.getImage());
+        }
+
+        // Добавляем levelGroup в root
+        root.getChildren().add(levelGroup);
+
         //########################################/ UI /########################################//
         Image ui_side_rightImage = new Image(getClass().getResource("/ui/ui_side_right.png").toExternalForm());
         Image ui_side_leftImage = new Image(getClass().getResource("/ui/ui_side_left.png").toExternalForm());
@@ -117,21 +138,13 @@ public class GameView {
         endPlayAgain = new ImageView(endPlayAgainImage);
         endPlayAgain.setVisible(false);
 
+        Image endPlayNextImage = new Image(getClass().getResource("/ui/end_play_next.png").toExternalForm());
+        endPlayNext = new ImageView(endPlayNextImage);
+        endPlayNext.setVisible(false);
+
         Image endExitImage = new Image(getClass().getResource("/ui/end_exit.png").toExternalForm());
         endExit = new ImageView(endExitImage);
         endExit.setVisible(false);
-
-
-        //########################################/ Pane /########################################//
-        root = new Pane();
-        Level level = controller.getCurrentLevel();
-        ImageView background = level.getBackground();
-        root.getChildren().add(background);
-
-        for (GameObject obj : level.getObjects()) {
-            obj.getImage().setOnMouseClicked(e -> controller.onObjectClicked(obj));
-            root.getChildren().add(obj.getImage());
-        }
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
@@ -143,7 +156,6 @@ public class GameView {
         });
         stage.setFullScreenExitHint("");
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-
 
         scene.getStylesheets().add(getClass().getResource("/styles/game.css").toExternalForm());
         stage.setTitle("Hidden Objects Game");
@@ -193,9 +205,6 @@ public class GameView {
         }
 
         //########################################/ UI Placement /########################################//
-        background.setLayoutX(0);
-        background.setLayoutY(0);
-
         ui_side_left.setLayoutX(0);
         ui_side_left.setLayoutY(0);
         root.getChildren().add(ui_side_left);
@@ -239,10 +248,11 @@ public class GameView {
         scoreText.setLayoutX(1083);
         scoreText.setLayoutY(67);
         root.getChildren().add(scoreText);
-        root.getChildren().addAll(confirmDialog, confirmYes, confirmNo, endDialog, endExit, endPlayAgain);
+        root.getChildren().addAll(confirmDialog, confirmYes, confirmNo, endDialog, endExit, endPlayAgain, endPlayNext);
 
         setupButtonAnimation(endPlayAgain);
         setupButtonAnimation(endExit);
+        setupButtonAnimation(endPlayNext);
 
         //########################################/ MESSAGE HISTORY PANEL /########################################//
         // Загружаем CSS
@@ -549,13 +559,16 @@ public class GameView {
         endDialog.setLayoutX(x - 400);
         endDialog.setLayoutY(y - 130);
 
-        endPlayAgain.setLayoutX(x - 390);   // отступы подгонишь под свой дизайн
+        endPlayAgain.setLayoutX(x - 390);
         endPlayAgain.setLayoutY(y + 21);
-        endExit.setLayoutX(x);
+        endPlayNext.setLayoutX(x - 130);
+        endPlayNext.setLayoutY(y + 21);
+        endExit.setLayoutX(x + 130);
         endExit.setLayoutY(y + 21);
 
         endDialog.setVisible(true);
         endPlayAgain.setVisible(true);
+        endPlayNext.setVisible(true);
         endExit.setVisible(true);
         //setGameInteraction(false);
 
@@ -566,6 +579,7 @@ public class GameView {
         endDialog.setTranslateY(40);
 
         endPlayAgain.setOpacity(0);
+        endPlayNext.setOpacity(0);
         endExit.setOpacity(0);
 
         FadeTransition fadeIn = new FadeTransition(Duration.millis(300), endDialog);
@@ -582,19 +596,22 @@ public class GameView {
         moveUp.setFromY(40);
         moveUp.setToY(0);
 
-        FadeTransition fadeYes = new FadeTransition(Duration.millis(250), endPlayAgain);
-        fadeYes.setFromValue(0);
-        fadeYes.setToValue(1);
+        FadeTransition fadePlayAgain = new FadeTransition(Duration.millis(250), endPlayAgain);
+        fadePlayAgain.setFromValue(0);
+        fadePlayAgain.setToValue(1);
 
-        FadeTransition fadeNo = new FadeTransition(Duration.millis(250), endExit);
-        fadeNo.setFromValue(0);
-        fadeNo.setToValue(1);
+        FadeTransition fadePlayNext = new FadeTransition(Duration.millis(250), endPlayNext);
+        fadePlayNext.setFromValue(0);
+        fadePlayNext.setToValue(1);
+
+        FadeTransition fadeExit = new FadeTransition(Duration.millis(250), endExit);
+        fadeExit.setFromValue(0);
+        fadeExit.setToValue(1);
 
         ParallelTransition endDialogAppear = new ParallelTransition(fadeIn, scaleIn, moveUp);
         javafx.animation.SequentialTransition total =
-                new javafx.animation.SequentialTransition(endDialogAppear, new ParallelTransition(fadeYes, fadeNo));
+                new javafx.animation.SequentialTransition(endDialogAppear, new ParallelTransition(fadePlayAgain, fadePlayNext, fadeExit));
         total.setOnFinished(e -> {
-            // Отключаем взаимодействие только после полного появления диалога
             setGameInteraction(false);
         });
         total.play();
@@ -608,6 +625,21 @@ public class GameView {
             SoundPlayer.stopAll();
             controller.stopGameMusic();
             controller.resetGame();
+        });
+
+        endPlayNext.setOnMouseClicked(e -> {
+            SoundPlayer.play("button_clicked.mp3");
+            hideEndDialog();
+
+            // Очищаем историю сообщений
+            messageHistoryBox.getChildren().clear();
+
+            // Останавливаем звуки
+            SoundPlayer.stopAll();
+            controller.stopGameMusic();
+
+            // Переходим на следующий уровень
+            controller.goToNextLevel();
         });
 
         endExit.setOnMouseClicked(e -> {
@@ -663,6 +695,7 @@ public class GameView {
         isEndDialogVisible = false;
         endDialog.setVisible(false);
         endPlayAgain.setVisible(false);
+        endPlayNext.setVisible(false);
         endExit.setVisible(false);
         setGameInteraction(true);
     }
@@ -681,4 +714,45 @@ public class GameView {
         return root.getScene();
     }
 
+    public void loadNewLevel(Level level) {
+        Platform.runLater(() -> {
+            // Полностью очищаем levelGroup и добавляем новый контент
+            levelGroup.getChildren().clear();
+
+            // Добавляем новый фон
+            ImageView newBackground = level.getBackground();
+            levelGroup.getChildren().add(newBackground);
+
+            // Добавляем новые объекты
+            for (GameObject obj : level.getObjects()) {
+                ImageView img = obj.getImage();
+
+                // Сбрасываем состояние объекта
+                obj.setFound(false);
+                img.setDisable(false);
+                img.setOpacity(1.0);
+
+                // Устанавливаем позицию
+                img.setLayoutX(obj.getX());
+                img.setLayoutY(obj.getY());
+
+                // Устанавливаем обработчик клика
+                img.setOnMouseClicked(e -> controller.onObjectClicked(obj));
+
+                levelGroup.getChildren().add(img);
+            }
+
+            // Обновляем счетчик
+            updateScore(0, controller.getTotalThreats());
+
+            // Очищаем историю сообщений
+            clearMessageHistory();
+        });
+    }
+
+    public void clearMessageHistory() {
+        if (messageHistoryBox != null) {
+            messageHistoryBox.getChildren().clear();
+        }
+    }
 }

@@ -44,4 +44,22 @@ public class Game {
     public long getTotalThreats() {
         return totalThreats;
     }
+
+    public boolean hasNextLevel() {
+        return currentLevel < levels.size() - 1;
+    }
+
+    public void nextLevel() {
+        if (hasNextLevel()) {
+            currentLevel++;
+            totalThreats = getCurrentLevel().getObjects().stream()
+                    .filter(GameObject::isThreat)
+                    .count();
+            threatsFound = 0;
+        }
+    }
+
+    public void resetThreatsFound() {
+        threatsFound = 0;
+    }
 }
