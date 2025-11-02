@@ -482,7 +482,7 @@ public class GameController {
 
 
         Level level2 = new Level(2, List.of(api_keyObj, flashObj, db_dataObj, routerObj, coffee_cupObj, web_cameraObj, phone2Obj,
-                booksObj, plant2Obj, laptopObj, fake_prizeObj, microwaveObj, virus_detectedObj, chairObj, pensObj, boxesObj, documents1Obj,
+                booksObj, plant2Obj, fake_prizeObj, microwaveObj, virus_detectedObj, chairObj, laptopObj, pensObj, boxesObj, documents1Obj,
                 documents2Obj), background2);
         game = new Game(List.of(level1, level2));
 
