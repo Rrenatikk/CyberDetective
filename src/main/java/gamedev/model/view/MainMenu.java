@@ -150,7 +150,7 @@ public class MainMenu {
         // Обработчики кликов
         playButton.setOnMouseClicked(e -> {
             SoundPlayer.play("button_clicked.mp3");
-            startGameWithTransition();
+            startLevelSelectTransition();
         });
 
         rulesButton.setOnMouseClicked(e -> {
@@ -171,26 +171,54 @@ public class MainMenu {
         });
     }
 
-    private void startGameWithTransition() {
+//    private void startGameWithTransition() {
+//        darkOverlay.setMouseTransparent(false);
+//
+//        // ✅ Быстрая анимация уменьшения громкости (200ms вместо 800ms)
+//        Timeline volumeDecrease = new Timeline();
+//        if (mediaPlayer != null) {
+//            volumeDecrease = new Timeline(
+//                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), mediaPlayer.getVolume())),
+//                    new KeyFrame(Duration.millis(200), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
+//            );
+//        }
+//
+//        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), darkOverlay); // Укороченная анимация
+//        fadeOut.setFromValue(0);
+//        fadeOut.setToValue(0.9);
+//
+//        ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
+//        transition.setOnFinished(e -> {
+//            stopMenuMusic(); // Останавливаем после быстрой анимации
+//            controller.startGame(primaryStage);
+//        });
+//
+//        transition.play();
+//    }
+
+    private void startLevelSelectTransition() {
         darkOverlay.setMouseTransparent(false);
 
-        // ✅ Быстрая анимация уменьшения громкости (200ms вместо 800ms)
-        Timeline volumeDecrease = new Timeline();
-        if (mediaPlayer != null) {
-            volumeDecrease = new Timeline(
-                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), mediaPlayer.getVolume())),
-                    new KeyFrame(Duration.millis(200), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
-            );
-        }
+        // Анимация затухания музыки и экрана (скопирована из startGameWithTransition)
+//        Timeline volumeDecrease = new Timeline();
+//        if (mediaPlayer != null) {
+//            volumeDecrease = new Timeline(
+//                    new KeyFrame(Duration.ZERO, new KeyValue(mediaPlayer.volumeProperty(), mediaPlayer.getVolume())),
+//                    new KeyFrame(Duration.millis(200), new KeyValue(mediaPlayer.volumeProperty(), 0.0))
+//            );
+//        }
 
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), darkOverlay); // Укороченная анимация
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), darkOverlay);
         fadeOut.setFromValue(0);
         fadeOut.setToValue(0.9);
 
-        ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
+        ParallelTransition transition = new ParallelTransition(fadeOut);
         transition.setOnFinished(e -> {
-            stopMenuMusic(); // Останавливаем после быстрой анимации
-            controller.startGame(primaryStage);
+            // stopMenuMusic(); // Музыка должна продолжиться в LevelSelectMenu, если она там есть
+
+            // ✅ Переход к выбору уровня
+            LevelSelectMenu levelSelect = new LevelSelectMenu(primaryStage, controller);
+            levelSelect.show();
         });
 
         transition.play();
@@ -214,7 +242,7 @@ public class MainMenu {
     }
 
     // Метод для остановки музыки главного меню
-    public void stopMenuMusic() {
+    public static void stopMenuMusic() {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer = null;

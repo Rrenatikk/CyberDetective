@@ -19,6 +19,11 @@ public class Level {
         this.backgroundView.setLayoutY(0);
     }
 
+    public int getLevelId() {
+        return this.number;
+    }
+
+
     public List<GameObject> getObjects() {
         return objects;
     }

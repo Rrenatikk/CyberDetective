@@ -550,6 +550,10 @@ public class GameView {
         if (isEndDialogVisible) return;
         isEndDialogVisible = true;
 
+
+        controller.markCurrentLevelAsComplete();
+
+
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         double dialogWidth = 700;
         double dialogHeight = 400;
@@ -635,8 +639,8 @@ public class GameView {
             messageHistoryBox.getChildren().clear();
 
             // Останавливаем звуки
-            SoundPlayer.stopAll();
-            controller.stopGameMusic();
+//            SoundPlayer.stopAll();
+//            controller.stopGameMusic();
 
             // Переходим на следующий уровень
             controller.goToNextLevel();
@@ -676,10 +680,9 @@ public class GameView {
                     // Запускаем все анимации параллельно
                     ParallelTransition transition = new ParallelTransition(fadeOut, volumeDecrease);
                     transition.setOnFinished(event -> {
-                        // ✅ Открываем главное меню после завершения анимации
                         controller.exitGame(stage);
-                        MainMenu mainMenu = new MainMenu(stage, controller);
-                        mainMenu.show();
+                        LevelSelectMenu levelSelectMenu = new LevelSelectMenu(stage, controller);
+                        levelSelectMenu.show();
                     });
 
                     transition.play();
