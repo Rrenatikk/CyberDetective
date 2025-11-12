@@ -116,7 +116,6 @@ public class MainMenu {
         primaryStage.setTitle("Hidden Objects Game");
         primaryStage.setMaximized(true);
         primaryStage.setResizable(false);
-        primaryStage.setFullScreenExitHint("");
 
         primaryStage.show();
 
@@ -130,7 +129,7 @@ public class MainMenu {
         primaryStage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
 
 
-        Platform.runLater(() -> primaryStage.setFullScreen(true));
+        primaryStage.setFullScreen(true);
 
         // Настройка курсора
         try {

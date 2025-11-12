@@ -14,5 +14,10 @@ public enum ThreatType {
     COMPUTER_VIRUS,
     WEB_CAMERA,
     LAPTOP,
+    SECURITY_CAMERA,
+    CHARGING_STATION,
+    PERSONAL_DATA,
+    QR_CODE,
+    POS_TERMINAL,
     NO_THREAT
 }

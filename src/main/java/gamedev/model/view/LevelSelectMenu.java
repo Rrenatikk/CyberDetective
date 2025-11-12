@@ -3,6 +3,7 @@ package gamedev.model.view;
 import gamedev.controller.GameController;
 import gamedev.model.SoundPlayer;
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
 import javafx.scene.Scene;
@@ -181,7 +182,19 @@ public class LevelSelectMenu {
         primaryStage.setScene(scene);
         primaryStage.setTitle("Level Selection");
         primaryStage.setMaximized(true);
+        primaryStage.setResizable(false);
         primaryStage.show();
+
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                event.consume(); // полностью игнорируем клавишу Esc
+            }
+        });
+
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+
+        primaryStage.setFullScreen(true);
 
         // Установка курсора
         try {
