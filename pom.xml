@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>gamedev</groupId>
-    <artifactId>HiddenObjects</artifactId>
+    <artifactId>CyberDetective</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -35,7 +35,6 @@
 
     <build>
         <plugins>
-            <!-- Компилятор -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -46,7 +45,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Создание исполняемого JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -69,7 +67,6 @@
                 </executions>
             </plugin>
 
-            <!-- JavaFX jlink для создания custom JRE -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
@@ -94,26 +91,31 @@
                 </executions>
             </plugin>
 
-            <!-- JPackage для создания EXE -->
             <plugin>
                 <groupId>org.panteleyev</groupId>
                 <artifactId>jpackage-maven-plugin</artifactId>
                 <version>1.6.0</version>
                 <configuration>
-                    <name>HiddenObjectsGame</name>
+                    <name>CyberDetective</name>
                     <appVersion>1.0.0</appVersion>
-                    <vendor>CyberField NET</vendor>
-                    <copyright>© 2025 CyberField NET</copyright>
+
+                    <vendor>CyberField NeT</vendor>
+                    <copyright>© 2025 CyberField NeT</copyright>
                     <description>Find hidden objects in cybersecurity environment</description>
+
                     <mainClass>gamedev.Main</mainClass>
                     <mainJar>HiddenObjectsGame.jar</mainJar>
+
                     <type>EXE</type>
                     <icon>src/main/resources/icon.ico</icon>
+
                     <winConsole>false</winConsole>
                     <winShortcut>true</winShortcut>
                     <winMenu>true</winMenu>
                     <winDirChooser>true</winDirChooser>
-                    <winPerUserInstall>true</winPerUserInstall>
+
+                    <winPerUserInstall>false</winPerUserInstall>
+
                     <destination>target/installer</destination>
                     <input>target</input>
                     <runtimeImage>target/hidden-objects-game</runtimeImage>

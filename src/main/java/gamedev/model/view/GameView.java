@@ -626,8 +626,8 @@ public class GameView {
             hideEndDialog();
             messageHistoryBox.getChildren().clear();
 
-            SoundPlayer.stopAll();
-            controller.stopGameMusic();
+//            SoundPlayer.stopAll();
+//            controller.stopGameMusic();
             controller.resetGame();
         });
 
