@@ -1,9 +1,9 @@
 # 🕵️‍♂️ Cyber Detective
 
-**Cyber Detective** — це атмосферна гра в жанрі "Пошук предметів" (Hidden Object), де ви виступаєте в ролі цифрового слідчого. Ваше завдання — виявити приховані кіберзагрози, від фішингових листів та шкідливого ПЗ до апаратних закладок, на деталізованих локаціях.
+**Cyber Detective** is an atmospheric hidden object game where you play the role of a digital investigator. Your task is to uncover hidden cyber threats, from phishing emails and malware to hardware keyloggers, in detailed locations.
 
-Кожен рівень створено вручну, щоб занурити вас у напружений світ IT-розслідувань. Гра поєднує класичну механіку уважності з реальною термінологією інформаційної безпеки, перетворюючи звичайний пошук на справжнє полювання за вразливостями.
+Each level is handcrafted to immerse you in the tense world of IT investigations. The game combines classic attention-to-detail mechanics with real-world information security terminology, turning a simple search into a real hunt for weaknesses.
 
-Проєкт повністю розроблений на **Java** з використанням **JavaFX**, що забезпечує високу швидкодію та легкість запуску без складних налаштувань. Гра не потребує встановлення додаткових бібліотек.
+The project is developed entirely in **Java** using **JavaFX**, which ensures high performance and ease of launch without complex settings. The game does not require the installation of additional libraries.
 
-📥 **Як почати:** Перейдіть у розділ **Releases** (праворуч на сторінці), завантажте файл `CyberDetective-1.0.0.exe` та встановіть гру на свій комп'ютер.
+📥 **How to get started:** Go to the **Releases** section, download the `CyberDetective-1.0.0.exe` file, and install the game on your computer.
